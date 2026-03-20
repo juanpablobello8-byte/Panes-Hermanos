@@ -1,0 +1,395 @@
+/* ==========================================================================
+   PANES HERMANOS - PUNTO DE VENTA 
+   ========================================================================== */
+
+/*--------------------------------------------------------------
+# General
+--------------------------------------------------------------*/
+:root {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Open Sans", sans-serif;
+  background: #f6f9ff;
+  color: #444444;
+}
+
+a {
+  color: #4154f1;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #717ff5;
+  text-decoration: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Nunito", sans-serif;
+}
+
+/*--------------------------------------------------------------
+# Main
+--------------------------------------------------------------*/
+#main {
+  margin-top: 60px;
+  padding: 20px 30px;
+  transition: all 0.3s;
+}
+
+@media (max-width: 1199px) {
+  #main {
+    padding: 20px;
+  }
+}
+
+/*--------------------------------------------------------------
+# Page Title
+--------------------------------------------------------------*/
+.pagetitle {
+  margin-bottom: 10px;
+}
+
+.pagetitle h1 {
+  font-size: 24px;
+  margin-bottom: 0;
+  font-weight: 600;
+  color: #012970;
+}
+
+
+/*--------------------------------------------------------------
+# Cards
+--------------------------------------------------------------*/
+.card {
+  margin-bottom: 30px;
+  border: none;
+  border-radius: 5px;
+  box-shadow: 0px 0 30px rgba(1, 41, 112, 0.1);
+  background-color: #fff;
+}
+
+.card-title {
+  padding: 20px 0 15px 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: #012970;
+  font-family: "Poppins", sans-serif;
+}
+
+.card-title span {
+  color: #899bbd;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.card-body {
+  padding: 0 20px 20px 20px;
+}
+
+/*--------------------------------------------------------------
+# Header
+--------------------------------------------------------------*/
+.header {
+  transition: all 0.5s;
+  z-index: 997;
+  height: 60px;
+  box-shadow: 0px 2px 20px rgba(1, 41, 112, 0.1);
+  background-color:  #fff4d9;
+  padding-left: 20px;
+}
+
+.logo {
+  line-height: 1px;
+}
+
+@media (min-width: 1200px) {
+  .logo { width: 280px; }
+}
+
+.logo-header {
+  max-height: 80px; 
+  margin-right: 10px;
+}
+
+
+
+.header .toggle-sidebar-btn {
+  font-size: 32px;
+  padding-left: .1px;
+  cursor: pointer;
+  color: #012970;
+}
+
+/*--------------------------------------------------------------
+# Header Nav (Perfil de Vendedor)
+--------------------------------------------------------------*/
+.header-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.header-nav .nav-profile {
+  color: #012970;
+}
+
+.header-nav .nav-profile img {
+  max-height: 36px;
+}
+
+.header-nav .nav-profile span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.header-nav .profile {
+  min-width: 240px;
+  padding-bottom: 0;
+  top: 8px !important;
+}
+
+.header-nav .profile .dropdown-header h6 {
+  font-size: 18px;
+  margin-bottom: 0;
+  font-weight: 600;
+  color: #444444;
+}
+
+.header-nav .profile .dropdown-header span {
+  font-size: 14px;
+}
+
+/*--------------------------------------------------------------
+# Sidebar
+--------------------------------------------------------------*/
+.sidebar {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  bottom: 0;
+  width: 300px;
+  z-index: 996;
+  transition: all 0.3s;
+  padding: 20px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #aab7cf transparent;
+  box-shadow: 0px 0px 20px rgba(1, 41, 112, 0.1);
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+@media (max-width: 1199px) {
+  .sidebar { left: -300px; }
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 5px;
+  height: 8px;
+  background-color: #fff;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background-color: #aab7cf;
+}
+
+@media (min-width: 1200px) {
+  #main, #footer { margin-left: 300px; }
+}
+
+@media (max-width: 1199px) {
+  .toggle-sidebar .sidebar { left: 0; }
+}
+
+@media (min-width: 1200px) {
+  .toggle-sidebar #main, .toggle-sidebar #footer { margin-left: 0; }
+  .toggle-sidebar .sidebar { left: -300px; }
+}
+
+
+.logo-sidebar {
+  max-width: 80%; 
+  display: block;
+  margin: 0 auto; 
+}
+
+.sidebar-nav {
+  width: 100%; 
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.sidebar-nav .nav-item {
+  margin-bottom: 5px;
+}
+
+.sidebar-nav .nav-link {
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #4154f1;
+  background: #f6f9ff;
+  padding: 10px 15px;
+  border-radius: 4px;
+  transition: 0.3s;
+}
+
+.sidebar-nav .nav-link i {
+  font-size: 16px;
+  margin-right: 10px;
+  color: #4154f1;
+}
+
+.sidebar-nav .nav-link.collapsed {
+  color: #012970;
+  background: #fff;
+}
+
+.sidebar-nav .nav-link.collapsed i {
+  color: #899bbd;
+}
+
+.sidebar-nav .nav-link:hover {
+  color: #4154f1;
+  background: #f6f9ff;
+}
+
+/*--------------------------------------------------------------
+# Dashboard (Tarjetas de Reportes)
+--------------------------------------------------------------*/
+.dashboard .info-card {
+  padding-bottom: 10px;
+}
+
+.dashboard .info-card h6 {
+  font-size: 28px;
+  color: #012970;
+  font-weight: 700;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard .card-icon {
+  font-size: 32px;
+  line-height: 0;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+
+/* Tarjeta 1: Inventario Stock Bajo*/
+.dashboard .ph-inventory-card .card-icon {
+  color: #f0ad4e;
+  background: #fff3cd;
+}
+
+/* Tarjeta 2: Ventas del Día*/
+.dashboard .ph-day-sales-card .card-icon {
+  color: #2eca6a;
+  background: #e0f8e9;
+}
+
+/* Tarjeta 3: Ventas del Mes*/
+.dashboard .ph-month-sales-card .card-icon {
+  color: #4154f1;
+  background: #f6f6fe;
+}
+
+/* Tarjeta de Volumen de Ventas y Ingreso Total en Reportes */
+.dashboard .sales-card .card-icon {
+  color: #4154f1;
+  background: #f6f6fe;
+}
+
+.dashboard .revenue-card .card-icon {
+  color: #2eca6a;
+  background: #e0f8e9;
+}
+
+.dashboard .recent-sales .table thead {
+  background: #f6f6fe;
+}
+
+.dashboard .recent-sales .table thead th {
+  border: 0;
+}
+
+/*--------------------------------------------------------------
+# Footer
+--------------------------------------------------------------*/
+.footer {
+  padding: 20px 0;
+  font-size: 14px;
+  transition: all 0.3s;
+  border-top: 1px solid #cddfff;
+}
+
+.footer .copyright {
+  text-align: center;
+  color: #012970;
+}
+
+.tarjetas-container {
+  max-height: 60vh; 
+  overflow-y: auto;
+  padding-top: 10px;
+}
+
+
+.col-producto {
+  margin-bottom: 15px;
+}
+
+.tarjeta-producto {
+  background-color: #f6f9ff;
+  border: 1px solid #dce7f9;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.tarjeta-producto:hover {
+  background-color: #e0eaff;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  border-color: #4154f1;
+}
+
+.tarjeta-producto strong {
+  font-size: 1.1rem;
+  color: #012970;
+  font-family: "Nunito", sans-serif;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.tarjeta-producto .precio {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2eca6a; 
+}
+
+.tarjeta-producto small {
+  color: #899bbd;
+  margin-top: 5px;
+}
+
+.table .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
