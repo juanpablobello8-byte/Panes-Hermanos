@@ -7,7 +7,7 @@ from conexion import get_db
 from modelos_ventas import VentaDB, DetalleVentaDB
 from schema_ventas import VentaCreate, VentaOut
 
-# Creamos TU router independiente
+# router independiente
 router = APIRouter(prefix="/ventas", tags=["Módulo de Ventas (Punto de Venta)"])
 
 @router.post("", response_model=VentaOut, status_code=status.HTTP_201_CREATED)
@@ -15,7 +15,7 @@ def registrar_venta(venta_data: VentaCreate, db: Session = Depends(get_db)):
     """
     Registra una nueva venta en la panadería, calcula el total y guarda el detalle.
     """
-    # 1. Creamos la venta principal
+    # Creamos la venta principal
     nueva_venta = VentaDB(
         empleado_id=venta_data.empleado_id, 
         total=0.0,
@@ -28,7 +28,7 @@ def registrar_venta(venta_data: VentaCreate, db: Session = Depends(get_db)):
     
     total_calculado = 0.0
     
-    # 2. Procesamos el carrito de compras (los detalles)
+    # Procesa el carrito de compras (los detalles)
     for item in venta_data.productos:
         subtotal_item = item.cantidad * item.precio_unitario
         total_calculado += subtotal_item
@@ -43,10 +43,10 @@ def registrar_venta(venta_data: VentaCreate, db: Session = Depends(get_db)):
         db.add(nuevo_detalle)
         
         # ---> AQUÍ SE CONECTA CON JUAN (INVENTARIOS) <---
-        # Cuando Juan tenga su función lista, aquí la llamarías, por ejemplo:
+        # Cuando Juan tenga su función lista:
         # inventario.descontar_stock(db, item.producto_id, item.cantidad)
     
-    # 3. Actualizamos el total real de la venta
+    # Actualiza el total real de la venta
     nueva_venta.total = total_calculado
     db.commit()
     db.refresh(nueva_venta)

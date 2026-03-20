@@ -2,7 +2,7 @@
 from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from conexion import Base # Asumiendo que usarán un archivo central de conexión
+from conexion import Base # 
 
 class VentaDB(Base):
     __tablename__ = "ventas"
