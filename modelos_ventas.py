@@ -21,7 +21,7 @@ class DetalleVentaDB(Base):
     id = Column(Integer, primary_key=True, index=True)
     venta_id = Column(Integer, ForeignKey("ventas.id"), nullable=False)
     producto_id = Column(Integer, index=True, nullable=False) # Se conecta con Inventario
-    cantidad = Column(Integer, nullable=False)
+    cantidad =   Column(Integer, nullable=False)
     precio_unitario = Column(Float, nullable=False)
     subtotal = Column(Float, nullable=False)
     
