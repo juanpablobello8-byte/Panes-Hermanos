@@ -1,4 +1,9 @@
 /* =========================================
+   CONFIGURACIÓN DE LA API
+   ========================================= */
+const API_URL = 'http://172.21.64.1:8000'; // Reemplaza esto con la IP que te dio David
+
+/* =========================================
    ESTADO DE LA APLICACIÓN (Datos)
    ========================================= */
 // Uso prefijos específicos para Panes Hermanos en LocalStorage para no interferir con NiceAdmin
@@ -202,23 +207,34 @@ function renderizarProductosVenta() {
 }
 
 function agregarAlCarrito(idProducto) {
+    // 1. Buscamos el producto original en el inventario para saber su precio y stock
     let producto = inventario.find(p => p.id === idProducto);
+    
+    // Si por alguna razón no existe en el inventario, no hacemos nada
+    if (!producto) return; 
+
+    // 2. Buscamos si ESTE MISMO producto ya está metido en el carrito
     let itemEnCarrito = carrito.find(item => item.id === idProducto);
 
     if (itemEnCarrito) {
+        // Si ya está en el carrito, verificamos si aún hay stock para agregar uno más
         if (itemEnCarrito.cantidad < producto.stock) {
             itemEnCarrito.cantidad++;
         } else {
-            alert("No hay más stock disponible.");
+            alert(`No hay más stock disponible de ${producto.nombre}.`);
         }
     } else {
+        // Si NO está en el carrito, lo agregamos por primera vez
+        // Nos aseguramos de guardar la estructura que necesita el frontend Y el backend
         carrito.push({
-            id: producto.id,
-            nombre: producto.nombre,
-            precio: producto.precio,
-            cantidad: 1
+            id: producto.id,          // Lo usaremos para el frontend y como producto_id para el backend
+            nombre: producto.nombre,  // Para mostrarlo en la tablita del cajero
+            precio: producto.precio,  // Para mostrarlo y para el precio_unitario del backend
+            cantidad: 1               // Inicia en 1
         });
     }
+    
+    // Actualizamos la tabla visual del carrito en la pantalla
     renderizarCarrito();
 }
 
@@ -253,66 +269,115 @@ function renderizarCarrito() {
     document.getElementById('total-venta').innerText = total.toFixed(2);
 }
 
-function finalizarVenta() {
+async function finalizarVenta() {
     if (carrito.length === 0) {
         alert("El carrito está vacío.");
         return;
     }
 
-    let totalVenta = carrito.reduce((suma, item) => suma + (item.precio * item.cantidad), 0);
-
-    // Descontar Stock
-    carrito.forEach(itemCarrito => {
-        let productoInv = inventario.find(p => p.id === itemCarrito.id);
-        if (productoInv) {
-            productoInv.stock -= itemCarrito.cantidad;
-        }
+    // 1. Damos formato a los productos tal como lo pide el modelo "DetalleVentaDB" de Python
+    const productosParaBackend = carrito.map(item => {
+        return {
+            producto_id: item.id,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio
+        };
     });
 
-    // Registrar Venta
-    let nuevaVenta = {
-        id: Date.now(),
-        fecha: new Date().toLocaleString(),
-        total: totalVenta
+    // 2. Armamos el objeto principal (VentaCreate) que espera el router de FastAPI
+    const ventaData = {
+        empleado_id: 1, // OJO: Aquí pusimos 1 fijo, luego lo cambiaremos por el ID del usuario logueado
+        metodo_pago: "Efectivo",
+        productos: productosParaBackend
     };
-    ventas.push(nuevaVenta);
 
-    // Limpiar
-    carrito = [];
-    guardarDatos();
-    actualizarVistas();
-    renderizarCarrito(); 
-    
-    alert("¡Venta cobrada con éxito!");
+    try {
+        // 3. Enviamos la petición POST al servidor
+        const respuesta = await fetch(`${API_URL}/ventas`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json' // Le decimos que enviamos JSON
+            },
+            body: JSON.stringify(ventaData)
+        });
+
+        // Verificamos si el servidor respondió con un error
+        if (!respuesta.ok) {
+            throw new Error("Error en el servidor al registrar la venta.");
+        }
+
+        // Si todo salió bien, el backend nos devuelve la venta creada (VentaOut)
+        const ventaGuardada = await respuesta.json();
+
+        // 4. Limpiamos el carrito de la pantalla
+        carrito = [];
+        actualizarVistas();
+        renderizarCarrito(); 
+        
+        alert(`¡Venta #${ventaGuardada.id} cobrada con éxito por $${ventaGuardada.total}!`);
+
+    } catch (error) {
+        console.error("Hubo un problema de conexión:", error);
+        alert("No se pudo conectar con el servidor. Revisa si la API está encendida.");
+    }
 }
 
 /* =========================================
    MÓDULO: REPORTES
    ========================================= */
-function renderizarReportes() {
+async function renderizarReportes() {
     let tbody = document.getElementById('tabla-reportes');
     let totalDineroCont = document.getElementById('reporte-total-dinero');
     let totalVentasCont = document.getElementById('reporte-total-ventas');
     
     if(!tbody || !totalDineroCont || !totalVentasCont) return;
 
-    tbody.innerHTML = '';
-    let sumaTotalDinero = 0;
+    try {
+        // Hacemos la petición GET a la API de tu compañero para traer TODAS las ventas
+        const respuesta = await fetch(`${API_URL}/ventas`);
+        
+        if (!respuesta.ok) {
+            throw new Error("No se pudieron cargar los reportes de ventas.");
+        }
 
-    // Mostrar las ventas de la más reciente a la más antigua
-    [...ventas].reverse().forEach(venta => {
-        sumaTotalDinero += venta.total;
-        tbody.innerHTML += `
-            <tr>
-                <td class="text-primary">#${venta.id}</td>
-                <td>${venta.fecha}</td>
-                <td class="fw-bold text-success">$${venta.total.toFixed(2)}</td>
-            </tr>
-        `;
-    });
+        // Convertimos la respuesta de Python a un arreglo de objetos de JavaScript
+        const ventasDesdeAPI = await respuesta.json();
 
-    totalDineroCont.innerText = sumaTotalDinero.toFixed(2);
-    totalVentasCont.innerText = ventas.length;
+        tbody.innerHTML = '';
+        let sumaTotalDinero = 0;
+
+        // Iteramos sobre las ventas que nos mandó la base de datos
+        // Como vienen ordenadas desde la BD, las invertimos para ver las más nuevas primero
+        [...ventasDesdeAPI].reverse().forEach(venta => {
+            
+            // Solo sumamos el dinero de las ventas que no estén canceladas
+            if (venta.estado !== "Cancelada") {
+                sumaTotalDinero += venta.total;
+            }
+
+            // Formateamos la fecha que nos manda FastAPI (viene como '2026-03-26T18:37:51')
+            let fechaFormateada = new Date(venta.fecha).toLocaleString();
+
+            // Decidimos el color de la fila dependiendo de si la venta está completada o cancelada
+            let estadoColor = venta.estado === "Cancelada" ? "text-danger text-decoration-line-through" : "text-success";
+
+            tbody.innerHTML += `
+                <tr>
+                    <td class="text-primary">#${venta.id}</td>
+                    <td>${fechaFormateada} <br><small class="text-muted">${venta.estado}</small></td>
+                    <td class="fw-bold ${estadoColor}">$${venta.total.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        // Actualizamos los cuadritos de arriba (Dashboard)
+        totalDineroCont.innerText = sumaTotalDinero.toFixed(2);
+        totalVentasCont.innerText = ventasDesdeAPI.length;
+
+    } catch (error) {
+        console.error("Error al cargar reportes:", error);
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error al conectar con el servidor</td></tr>`;
+    }
 }
 
 window.addEventListener('load', () => {
