@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from core.database import supabase
 from typing import List, Dict, Any, Optional
 
@@ -7,6 +8,14 @@ app = FastAPI(
     title="API de Reportes - Panadería",
     description="API para consultar información analítica y reportes automáticos guardados en Supabase.",
     version="2.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/reportes/guardados", tags=["Reportes Guardados"])

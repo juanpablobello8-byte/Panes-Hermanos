@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from core.database import supabase
@@ -22,6 +23,14 @@ app = FastAPI(
     title="API de Inventario - Panadería",
     description="API para gestionar el inventario conectado a Supabase.",
     version="3.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/productos", response_model=List[Producto], tags=["Inventario"])

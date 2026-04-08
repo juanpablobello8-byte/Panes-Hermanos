@@ -1,56 +1,45 @@
 /* =========================================
    CONFIGURACIÓN DE LA API
    ========================================= */
-const API_URL = 'http://172.21.64.1:8000'; // Reemplaza esto con la IP que te dio David
+const IP_LOCAL = 'http://localhost'; 
+const API_INVENTARIO = `${IP_LOCAL}:8000`;
+const API_VENTAS = `${IP_LOCAL}:8002`;
+const API_REPORTES = `${IP_LOCAL}:8003`;
 
 /* =========================================
-   ESTADO DE LA APLICACIÓN (Datos)
+   ESTADO DE LA APLICACIÓN (Datos locales temporales)
    ========================================= */
-// Uso prefijos específicos para Panes Hermanos en LocalStorage para no interferir con NiceAdmin
-let inventario = JSON.parse(localStorage.getItem('ph_inventario')) || [];
-let empleados = JSON.parse(localStorage.getItem('ph_empleados')) || [];
-let ventas = JSON.parse(localStorage.getItem('ph_ventas')) || [];
+let inventario = []; 
+let empleados = JSON.parse(localStorage.getItem('ph_empleados')) || []; // Empleados sigo en local por ahora
 let carrito = [];
 
-function guardarDatos() {
-    localStorage.setItem('ph_inventario', JSON.stringify(inventario));
+function guardarDatosEmpleados() {
     localStorage.setItem('ph_empleados', JSON.stringify(empleados));
-    localStorage.setItem('ph_ventas', JSON.stringify(ventas));
 }
 
 /* =========================================
    NAVEGACIÓN Y UI
    ========================================= */
 function cambiarModulo(idModulo) {
-    // Ocultar todos
     let modulos = document.querySelectorAll('.modulo');
     modulos.forEach(modulo => modulo.style.display = 'none');
-    
-    // Mostrar seleccionado
     document.getElementById(idModulo).style.display = 'block';
-    
-    // Actualizar estado activo en sidebar
     actualizarSidebar(idModulo);
-    
     actualizarVistas();
 }
 
 function actualizarSidebar(idModuloActive) {
     const links = document.querySelectorAll('.sidebar-nav .nav-link');
     links.forEach(link => link.classList.add('collapsed'));
-
-    // Mapeo rudimentario de módulo a índice de sidebar
     let indice = 0;
     if(idModuloActive === 'modulo-inventario') indice = 1;
     if(idModuloActive === 'modulo-empleados') indice = 2;
     if(idModuloActive === 'modulo-reportes') indice = 3;
-
-    if(links[indice]) {
-        links[indice].classList.remove('collapsed');
-    }
+    if(links[indice]) links[indice].classList.remove('collapsed');
 }
 
-function actualizarVistas() {
+async function actualizarVistas() {
+    await obtenerInventarioDeServidor();
     renderizarInventario();
     renderizarEmpleados();
     renderizarProductosVenta();
@@ -58,53 +47,91 @@ function actualizarVistas() {
 }
 
 /* =========================================
-   MÓDULO: INVENTARIO
+   MÓDULO: INVENTARIO (Conectado a FastAPI :8000)
    ========================================= */
-function agregarProducto(evento) {
+async function obtenerInventarioDeServidor() {
+    try {
+        const respuesta = await fetch(`${API_INVENTARIO}/productos`);
+        if(respuesta.ok) {
+            inventario = await respuesta.json();
+        }
+    } catch (e) {
+        console.error("Error obteniendo inventario:", e);
+    }
+}
+
+async function agregarProducto(evento) {
     evento.preventDefault(); 
-    
     let nombre = document.getElementById('inv-nombre').value;
     let precio = parseFloat(document.getElementById('inv-precio').value);
     let stock = parseInt(document.getElementById('inv-stock').value);
 
-    let nuevoProducto = {
-        id: Date.now(), 
+    let nuevoProductoReq = {
         nombre: nombre,
         precio: precio,
-        stock: stock
+        cantidad_en_stock: stock,
+        categoria: "Pan Dulce" // Categoria por defecto
     };
 
-    inventario.push(nuevoProducto);
-    guardarDatos();
-    actualizarVistas();
-    document.getElementById('form-inventario').reset();
-}
-
-function eliminarProducto(id) {
-    if(confirm('¿Seguro que deseas eliminar este producto?')) {
-        inventario = inventario.filter(producto => producto.id !== id);
-        guardarDatos();
-        actualizarVistas();
+    try {
+        const respuesta = await fetch(`${API_INVENTARIO}/productos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevoProductoReq)
+        });
+        if(respuesta.ok) {
+            document.getElementById('form-inventario').reset();
+            await actualizarVistas();
+        }
+    } catch (e) {
+        console.error("Error al crear producto:", e);
     }
 }
 
-function editarProducto(id) {
+async function eliminarProducto(id) {
+    if(confirm('¿Seguro que deseas eliminar este producto en la base de datos?')) {
+        try {
+            const respuesta = await fetch(`${API_INVENTARIO}/productos/${id}`, {
+                method: 'DELETE'
+            });
+            if(respuesta.ok || respuesta.status === 204) {
+                await actualizarVistas();
+            }
+        } catch (e) {
+            console.error("Error eliminando producto:", e);
+        }
+    }
+}
+
+async function editarProducto(id) {
     let producto = inventario.find(p => p.id === id);
     if(producto) {
         let nuevoNombre = prompt("Nuevo nombre:", producto.nombre) || producto.nombre;
         let nuevoPrecio = prompt("Nuevo precio:", producto.precio) || producto.precio;
-        let nuevoStock = prompt("Nuevo stock:", producto.stock) || producto.stock;
+        let nuevoStock = prompt("Nuevo stock:", producto.cantidad_en_stock) || producto.cantidad_en_stock;
 
-        producto.nombre = nuevoNombre;
-        producto.precio = parseFloat(nuevoPrecio);
-        producto.stock = parseInt(nuevoStock);
-
-        guardarDatos();
-        actualizarVistas();
+        let productoActualizado = {
+            nombre: nuevoNombre,
+            precio: parseFloat(nuevoPrecio),
+            cantidad_en_stock: parseInt(nuevoStock),
+            categoria: producto.categoria || "General"
+        };
+        
+        try {
+            const respuesta = await fetch(`${API_INVENTARIO}/productos/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productoActualizado)
+            });
+            if(respuesta.ok) {
+                await actualizarVistas();
+            }
+        } catch (e) {
+            console.error("Error actualizando producto:", e);
+        }
     }
 }
 
-// Adaptado para tablas de NiceAdmin
 function renderizarInventario() {
     let tbody = document.getElementById('tabla-inventario');
     if(!tbody) return;
@@ -115,7 +142,7 @@ function renderizarInventario() {
             <tr>
                 <td class="fw-bold text-dark">${producto.nombre}</td>
                 <td>$${producto.precio.toFixed(2)}</td>
-                <td>${producto.stock}</td>
+                <td>${producto.cantidad_en_stock}</td>
                 <td>
                     <button class="btn btn-warning btn-sm" onclick="editarProducto(${producto.id})">
                         <i class="bi bi-pencil"></i>
@@ -130,33 +157,25 @@ function renderizarInventario() {
 }
 
 /* =========================================
-   MÓDULO: EMPLEADOS
+   MÓDULO: EMPLEADOS (Persistencia Local Temporal)
    ========================================= */
 function agregarEmpleado(evento) {
     evento.preventDefault();
-    
     let nombre = document.getElementById('emp-nombre').value;
     let puesto = document.getElementById('emp-puesto').value;
     let telefono = document.getElementById('emp-telefono').value;
 
-    let nuevoEmpleado = {
-        id: Date.now(),
-        nombre: nombre,
-        puesto: puesto,
-        telefono: telefono
-    };
-
-    empleados.push(nuevoEmpleado);
-    guardarDatos();
-    actualizarVistas();
+    empleados.push({ id: Date.now(), nombre, puesto, telefono });
+    guardarDatosEmpleados();
+    renderizarEmpleados();
     document.getElementById('form-empleados').reset();
 }
 
 function eliminarEmpleado(id) {
     if(confirm('¿Seguro que deseas eliminar este empleado?')) {
         empleados = empleados.filter(empleado => empleado.id !== id);
-        guardarDatos();
-        actualizarVistas();
+        guardarDatosEmpleados();
+        renderizarEmpleados();
     }
 }
 
@@ -164,7 +183,6 @@ function renderizarEmpleados() {
     let tbody = document.getElementById('tabla-empleados');
     if(!tbody) return;
     tbody.innerHTML = '';
-
     empleados.forEach(empleado => {
         tbody.innerHTML += `
             <tr>
@@ -182,23 +200,21 @@ function renderizarEmpleados() {
 }
 
 /* =========================================
-   MÓDULO: VENTAS (Punto de Venta)
+   MÓDULO: VENTAS (Conectado a FastAPI :8002)
    ========================================= */
-
-// Renderiza los productos como tarjetas clicables
 function renderizarProductosVenta() {
     let contenedor = document.getElementById('contenedor-productos-venta');
     if(!contenedor) return;
     contenedor.innerHTML = '';
 
     inventario.forEach(producto => {
-        if(producto.stock > 0) {
+        if(producto.cantidad_en_stock > 0) {
             contenedor.innerHTML += `
                 <div class="col-md-4 col-sm-6 col-producto">
                     <div class="tarjeta-producto" onclick="agregarAlCarrito(${producto.id})">
                         <strong>${producto.nombre}</strong>
                         <span class="precio">$${producto.precio.toFixed(2)}</span>
-                        <small>Stock: ${producto.stock}</small>
+                        <small>Stock: ${producto.cantidad_en_stock}</small>
                     </div>
                 </div>
             `;
@@ -207,34 +223,24 @@ function renderizarProductosVenta() {
 }
 
 function agregarAlCarrito(idProducto) {
-    // 1. Buscamos el producto original en el inventario para saber su precio y stock
     let producto = inventario.find(p => p.id === idProducto);
-    
-    // Si por alguna razón no existe en el inventario, no hacemos nada
     if (!producto) return; 
 
-    // 2. Buscamos si ESTE MISMO producto ya está metido en el carrito
     let itemEnCarrito = carrito.find(item => item.id === idProducto);
-
     if (itemEnCarrito) {
-        // Si ya está en el carrito, verificamos si aún hay stock para agregar uno más
-        if (itemEnCarrito.cantidad < producto.stock) {
+        if (itemEnCarrito.cantidad < producto.cantidad_en_stock) {
             itemEnCarrito.cantidad++;
         } else {
             alert(`No hay más stock disponible de ${producto.nombre}.`);
         }
     } else {
-        // Si NO está en el carrito, lo agregamos por primera vez
-        // Nos aseguramos de guardar la estructura que necesita el frontend Y el backend
         carrito.push({
-            id: producto.id,          // Lo usaremos para el frontend y como producto_id para el backend
-            nombre: producto.nombre,  // Para mostrarlo en la tablita del cajero
-            precio: producto.precio,  // Para mostrarlo y para el precio_unitario del backend
-            cantidad: 1               // Inicia en 1
+            id: producto.id,          
+            nombre: producto.nombre,  
+            precio: producto.precio,  
+            cantidad: 1               
         });
     }
-    
-    // Actualizamos la tabla visual del carrito en la pantalla
     renderizarCarrito();
 }
 
@@ -265,7 +271,6 @@ function renderizarCarrito() {
             </tr>
         `;
     });
-
     document.getElementById('total-venta').innerText = total.toFixed(2);
 }
 
@@ -275,8 +280,7 @@ async function finalizarVenta() {
         return;
     }
 
-    // 1. Damos formato a los productos tal como lo pide el modelo "DetalleVentaDB" de Python
-    const productosParaBackend = carrito.map(item => {
+    const detallesParaBackend = carrito.map(item => {
         return {
             producto_id: item.id,
             cantidad: item.cantidad,
@@ -284,46 +288,34 @@ async function finalizarVenta() {
         };
     });
 
-    // 2. Armamos el objeto principal (VentaCreate) que espera el router de FastAPI
     const ventaData = {
-        empleado_id: 1, // OJO: Aquí pusimos 1 fijo, luego lo cambiaremos por el ID del usuario logueado
-        metodo_pago: "Efectivo",
-        productos: productosParaBackend
+        detalles: detallesParaBackend,
+        metodo_pago: "Efectivo"
     };
 
     try {
-        // 3. Enviamos la petición POST al servidor
-        const respuesta = await fetch(`${API_URL}/ventas`, {
+        const respuesta = await fetch(`${API_VENTAS}/ventas`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json' // Le decimos que enviamos JSON
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(ventaData)
         });
 
-        // Verificamos si el servidor respondió con un error
-        if (!respuesta.ok) {
-            throw new Error("Error en el servidor al registrar la venta.");
-        }
+        if (!respuesta.ok) throw new Error("Error registrando venta.");
 
-        // Si todo salió bien, el backend nos devuelve la venta creada (VentaOut)
         const ventaGuardada = await respuesta.json();
-
-        // 4. Limpiamos el carrito de la pantalla
         carrito = [];
-        actualizarVistas();
+        await actualizarVistas();
         renderizarCarrito(); 
         
-        alert(`¡Venta #${ventaGuardada.id} cobrada con éxito por $${ventaGuardada.total}!`);
-
+        alert(`¡Venta #${ventaGuardada.id} cobrada con éxito y reportada!`);
     } catch (error) {
         console.error("Hubo un problema de conexión:", error);
-        alert("No se pudo conectar con el servidor. Revisa si la API está encendida.");
+        alert("Asegúrate de que la API de Ventas esté corriendo en localhost:8002.");
     }
 }
 
 /* =========================================
-   MÓDULO: REPORTES
+   MÓDULO: REPORTES (Conectado a FastAPI :8003)
    ========================================= */
 async function renderizarReportes() {
     let tbody = document.getElementById('tabla-reportes');
@@ -333,50 +325,32 @@ async function renderizarReportes() {
     if(!tbody || !totalDineroCont || !totalVentasCont) return;
 
     try {
-        // Hacemos la petición GET a la API de tu compañero para traer TODAS las ventas
-        const respuesta = await fetch(`${API_URL}/ventas`);
-        
-        if (!respuesta.ok) {
-            throw new Error("No se pudieron cargar los reportes de ventas.");
+        const respuestaReportes = await fetch(`${API_REPORTES}/reportes/ventas/resumen`);
+        if (respuestaReportes.ok) {
+            const resumen = await respuestaReportes.json();
+            totalDineroCont.innerText = resumen.total_ingresos ? resumen.total_ingresos.toFixed(2) : "0.00";
+            totalVentasCont.innerText = resumen.total_transacciones || "0";
         }
 
-        // Convertimos la respuesta de Python a un arreglo de objetos de JavaScript
-        const ventasDesdeAPI = await respuesta.json();
+        const respuestaVentas = await fetch(`${API_VENTAS}/ventas`);
+        if (!respuestaVentas.ok) throw new Error("No se pudieron cargar el historial.");
 
+        const ventasBD = await respuestaVentas.json();
         tbody.innerHTML = '';
-        let sumaTotalDinero = 0;
-
-        // Iteramos sobre las ventas que nos mandó la base de datos
-        // Como vienen ordenadas desde la BD, las invertimos para ver las más nuevas primero
-        [...ventasDesdeAPI].reverse().forEach(venta => {
-            
-            // Solo sumamos el dinero de las ventas que no estén canceladas
-            if (venta.estado !== "Cancelada") {
-                sumaTotalDinero += venta.total;
-            }
-
-            // Formateamos la fecha que nos manda FastAPI (viene como '2026-03-26T18:37:51')
-            let fechaFormateada = new Date(venta.fecha).toLocaleString();
-
-            // Decidimos el color de la fila dependiendo de si la venta está completada o cancelada
-            let estadoColor = venta.estado === "Cancelada" ? "text-danger text-decoration-line-through" : "text-success";
-
+        
+        [...ventasBD].reverse().forEach(venta => {
+            let fecha = new Date(venta.fecha_venta).toLocaleString();
             tbody.innerHTML += `
                 <tr>
                     <td class="text-primary">#${venta.id}</td>
-                    <td>${fechaFormateada} <br><small class="text-muted">${venta.estado}</small></td>
-                    <td class="fw-bold ${estadoColor}">$${venta.total.toFixed(2)}</td>
+                    <td>${fecha} <br><small class="text-muted">Completada</small></td>
+                    <td class="fw-bold text-success">$${venta.total.toFixed(2)}</td>
                 </tr>
             `;
         });
-
-        // Actualizamos los cuadritos de arriba (Dashboard)
-        totalDineroCont.innerText = sumaTotalDinero.toFixed(2);
-        totalVentasCont.innerText = ventasDesdeAPI.length;
-
     } catch (error) {
         console.error("Error al cargar reportes:", error);
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error al conectar con el servidor</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error conectando con localhost:8002 / :8003</td></tr>`;
     }
 }
 
