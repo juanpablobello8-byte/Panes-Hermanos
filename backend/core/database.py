@@ -1,10 +1,15 @@
-from supabase import create_client, Client
+from postgrest import SyncPostgrestClient
 import os
-from .config import settings
 
-# En un entorno real se usaría python-dotenv o la clase Settings,
-# Aquí conectamos directamente a tu Supabase.
+# Usaremos directamente la capa subyacente PostgREST para evitar 
+# necesidad de compilar extensiones pesadas de C++ que pide supabase.
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ijvqubewduqzswxxamen.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "sb_publishable_QBO_3vQo-u9kldEBLDfkbw_ZMV0lyPQ")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = SyncPostgrestClient(
+    f"{SUPABASE_URL}/rest/v1",
+    headers={
+        "apikey": SUPABASE_KEY, 
+        "Authorization": f"Bearer {SUPABASE_KEY}"
+    }
+)
