@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+  <title>Panes Hermanos - Punto de Venta</title>
+  <meta content="" name="description">
+  <meta content="" name="keywords">
+
+  <link href="assets/img/ph.png" rel="icon">
+  <link href="assets/img/ph.png" rel="apple-touch-icon">
+
+  <link href="https://fonts.gstatic.com" rel="preconnect">
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+
+  <link href="assets/css/style.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+  <header id="header" class="header fixed-top d-flex align-items-center">
+    <div class="d-flex align-items-center justify-content-between">
+      <a href="index.html" class="logo d-flex align-items-center">
+        <img src="assets/img/ph.png" alt="Logo Panes Hermanos" class="logo-header">
+      </a>
+    </div><nav class="header-nav ms-auto">
+      <ul class="d-flex align-items-center">
+        <li class="nav-item dropdown pe-3">
+          <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
+            <img src="assets/img/eldabe.jpg" alt="Profile" class="rounded-circle">
+            <span class="d-none d-md-block dropdown-toggle ps-2">David Aguilar</span>
+          </a>
+
+          <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
+            <li class="dropdown-header">
+              <h6>David Aguilar</h6>
+              <span>Sucursal Nogales</span>
+            </li>
+            <li>
+              <hr class="dropdown-divider">
+            </li>
+            <li>
+              <a class="dropdown-item d-flex align-items-center" href="#">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Salir</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+
+  </header>
+
+  <aside id="sidebar" class="sidebar">
+
+    <img src="assets/img/ph.png" alt="Logo Panes Hermanos" class="img-fluid logo-sidebar mb-4">
+
+    <ul class="sidebar-nav" id="sidebar-nav">
+
+      <li class="nav-item">
+        <a class="nav-link" href="#" onclick="cambiarModulo('modulo-ventas')">
+          <i class="bi bi-cart-dash"></i>
+          <span>Ventas</span>
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-inventario')">
+          <i class="bi bi-box-seam"></i>
+          <span>Inventario</span>
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-empleados')">
+          <i class="bi bi-people"></i>
+          <span>Empleados</span>
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-reportes')">
+          <i class="bi bi-bar-chart-line"></i>
+          <span>Reportes</span>
+        </a>
+      </li>
+
+    </ul>
+
+  </aside>
+
+  <main id="main" class="main">
+
+    <div id="modulo-ventas" class="modulo">
+      <div class="pagetitle">
+        <h1>Punto de Venta</h1>
+      </div>
+
+      <section class="section dashboard">
+        
+        <div class="row">
+
+          <div class="col-xxl-4 col-md-6">
+            <div class="card info-card ph-inventory-card">
+              <div class="card-body">
+                <h5 class="card-title">Inventario <span>| Stock Bajo</span></h5>
+                <div class="d-flex align-items-center">
+                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                    <i class="bi bi-box-seam"></i>
+                  </div>
+                  <div class="ps-3">
+                    <h6>0 Panes</h6>
+                    <span class="text-warning small pt-1 fw-bold">Revisar Stock</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xxl-4 col-md-6">
+            <div class="card info-card ph-day-sales-card">
+              <div class="card-body">
+                <h5 class="card-title">Ventas del Día <span>| Hoy</span></h5>
+                <div class="d-flex align-items-center">
+                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                    <i class="bi bi-currency-dollar"></i>
+                  </div>
+                  <div class="ps-3">
+                    <h6>$0.00</h6>
+                    <span class="text-success small pt-1 fw-bold">En Caja</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xxl-4 col-xl-12">
+            <div class="card info-card ph-month-sales-card">
+              <div class="card-body">
+                <h5 class="card-title">Ventas del Mes <span>| Actual</span></h5>
+                <div class="d-flex align-items-center">
+                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                    <i class="bi bi-graph-up-arrow"></i>
+                  </div>
+                  <div class="ps-3">
+                    <h6>$0.00</h6>
+                    <span class="text-info small pt-1 fw-bold">Tendencia Alza</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="row mt-4">
+          <div class="col-lg-7">
+            <div class="card">
+              <div class="card-body pb-0">
+                <h5 class="card-title">Selección de Panes</h5>
+                <div id="contenedor-productos-venta" class="row tarjetas-container pb-3">
+                  </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-5">
+            <div class="card recent-sales overflow-auto">
+              <div class="card-body">
+                <h5 class="card-title">Ticket de Venta Actual</h5>
+                <table class="table table-borderless table-striped">
+                  <thead>
+                    <tr>
+                      <th scope="col">Pan</th>
+                      <th scope="col">Cant.</th>
+                      <th scope="col">Subtotal</th>
+                      <th scope="col">Quitar</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-carrito">
+                    </tbody>
+                </table>
+
+                <div class="alert alert-info d-flex justify-content-between align-items-center mt-3" role="alert">
+                  <span class="fw-bold fs-5">Total:</span>
+                  <span class="fw-bold fs-4">$<span id="total-venta">0.00</span></span>
+                </div>
+
+                <button class="btn btn-success btn-lg w-100 mt-2" onclick="finalizarVenta()">
+                  <i class="bi bi-cash-coin me-2"></i>Cobrar y Finalizar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+
+    <div id="modulo-inventario" class="modulo" style="display: none;">
+      <div class="pagetitle">
+        <h1>Gestión de Inventario</h1>
+      </div>
+
+      <section class="section">
+        <div class="row">
+          <div class="col-lg-12">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">Nuevo Producto</h5>
+                <form id="form-inventario" class="row g-3" onsubmit="agregarProducto(event)">
+                  <div class="col-md-5">
+                    <input type="text" class="form-control" id="inv-nombre" placeholder="Nombre del pan/producto" required>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="input-group">
+                      <span class="input-group-text">$</span>
+                      <input type="number" class="form-control" id="inv-precio" placeholder="Precio" step="0.01" required>
+                    </div>
+                  </div>
+                  <div class="col-md-2">
+                    <input type="number" class="form-control" id="inv-stock" placeholder="Stock Inicial" required>
+                  </div>
+                  <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                      <i class="bi bi-plus-circle me-1"></i> Agregar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div class="card mt-4">
+              <div class="card-body">
+                <h5 class="card-title">Listado de Existencias</h5>
+                <table class="table table-hover datatable-panes">
+                  <thead>
+                    <tr>
+                      <th scope="col">Nombre</th>
+                      <th scope="col">Precio</th>
+                      <th scope="col">Stock</th>
+                      <th scope="col">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-inventario">
+                    </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="modulo-empleados" class="modulo" style="display: none;">
+      <div class="pagetitle">
+        <h1>Gestión de Empleados</h1>
+      </div>
+
+      <section class="section">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Registrar Nuevo Empleado</h5>
+            <form id="form-empleados" class="row g-3" onsubmit="agregarEmpleado(event)">
+              <div class="col-md-4">
+                <input type="text" class="form-control" id="emp-nombre" placeholder="Nombre completo" required>
+              </div>
+              <div class="col-md-4">
+                <input type="text" class="form-control" id="emp-puesto" placeholder="Puesto (Cajero, Panadero...)" required>
+              </div>
+              <div class="col-md-2">
+                <input type="tel" class="form-control" id="emp-telefono" placeholder="Teléfono" required>
+              </div>
+              <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-person-plus me-1"></i> Registrar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-body">
+            <h5 class="card-title">Personal Registrado</h5>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th scope="col">Nombre</th>
+                  <th scope="col">Puesto</th>
+                  <th scope="col">Teléfono</th>
+                  <th scope="col">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-empleados">
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="modulo-reportes" class="modulo" style="display: none;">
+      <div class="pagetitle">
+        <h1>Resumen de Ventas</h1>
+      </div>
+
+      <section class="section dashboard">
+        <div class="row">
+          <div class="col-xxl-6 col-md-6">
+            <div class="card info-card sales-card">
+              <div class="card-body">
+                <h5 class="card-title">Volumen de Ventas</h5>
+                <div class="d-flex align-items-center">
+                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                    <i class="bi bi-journal-check"></i>
+                  </div>
+                  <div class="ps-3">
+                    <h6><span id="reporte-total-ventas">0</span></h6>
+                    <span class="text-muted small pt-2">Tickets emitidos</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xxl-6 col-md-6">
+            <div class="card info-card revenue-card">
+              <div class="card-body">
+                <h5 class="card-title">Ingreso Total</h5>
+                <div class="d-flex align-items-center">
+                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
+                    <i class="bi bi-currency-dollar"></i>
+                  </div>
+                  <div class="ps-3">
+                    <h6>$<span id="reporte-total-dinero">0.00</span></h6>
+                    <span class="text-muted small pt-2">Acumulado en caja</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mt-3">
+          <div class="col-12">
+            <div class="card recent-sales overflow-auto">
+              <div class="card-body">
+                <h5 class="card-title">Historial de Transacciones</h1>
+                <table class="table table-borderless table-striped datatable-ventas">
+                  <thead>
+                    <tr>
+                      <th scope="col">ID Ticket</th>
+                      <th scope="col">Fecha y Hora</th>
+                      <th scope="col">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-reportes">
+                    </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+<br>
+<br>
+  </main><footer id="footer" class="footer">
+    <div class="copyright">
+      &copy; Copyright 2026 <strong><span>Panes Hermanos</span></strong>. Todos los derechos reservados
+    </div>
+  </footer>
+
+  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+ 
+
+  <script src="assets/js/main.js"></script>
+  
+
+</body>
+
+</html>
