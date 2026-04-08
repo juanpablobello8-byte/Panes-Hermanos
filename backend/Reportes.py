@@ -107,5 +107,8 @@ def actividad_clientes():
     }
 
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import uvicorn
-    uvicorn.run("backend.Reportes:app", host="0.0.0.0", port=8003, reload=True)
+    uvicorn.run("Reportes:app", host="0.0.0.0", port=8003, reload=True)

@@ -124,5 +124,8 @@ def anular_venta(venta_id: int):
     return None
 
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import uvicorn
-    uvicorn.run("backend.Ventas:app", host="0.0.0.0", port=8002, reload=True)
+    uvicorn.run("Ventas:app", host="0.0.0.0", port=8002, reload=True)
