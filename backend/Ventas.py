@@ -90,13 +90,23 @@ def registrar_venta(venta_base: VentaCreate):
     
     # FastAPI mapeará el field 'detalles_venta' al campo 'detalles' definido en nuestro esquema Pydantic
     # Le pasamos la data manualmente al Pydantic Model
-    return {
+    venta_formateada = {
         "id": nueva_venta["id"],
         "fecha_venta": nueva_venta["created_at"],
         "total": nueva_venta["total"],
         "metodo_pago": nueva_venta["metodo_pago"],
         "detalles": nueva_venta["detalles_venta"]
     }
+    
+    # 3. Autogenerar y Guardar Reporte en Base de Datos
+    reporte_insert = {
+        "tipo_reporte": "Venta Registrada",
+        "referencia_id": venta_id,
+        "contenido": venta_formateada
+    }
+    supabase.table('reportes').insert(reporte_insert).execute()
+    
+    return venta_formateada
 
 @app.delete("/ventas/{venta_id}", status_code=204, tags=["Ventas"])
 def anular_venta(venta_id: int):

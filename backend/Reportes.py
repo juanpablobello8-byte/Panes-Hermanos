@@ -1,13 +1,35 @@
 from fastapi import FastAPI, HTTPException, Query
 from core.database import supabase
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 # ------ Aplicación FastAPI principal ------
 app = FastAPI(
     title="API de Reportes - Panadería",
-    description="API avanzada para generar reportes analíticos consolidados desde Supabase (Ventas, Productos, Clientes).",
-    version="1.0.0"
+    description="API para consultar información analítica y reportes automáticos guardados en Supabase.",
+    version="2.0.0"
 )
+
+@app.get("/reportes/guardados", tags=["Reportes Guardados"])
+def obtener_reportes_guardados(tipo: Optional[str] = None):
+    """
+    Obtiene todos los reportes estáticos generados automáticamente (ej. Ventas cruzadas, pedidos de material) 
+    que están guardados físcamente en la base de datos para su posterior lectura.
+    """
+    consulta = supabase.table('reportes').select('*')
+    if tipo:
+        consulta = consulta.eq('tipo_reporte', tipo)
+        
+    response = consulta.execute()
+    return response.data
+
+@app.get("/reportes/guardados/{reporte_id}", tags=["Reportes Guardados"])
+def obtener_reporte_guardado(reporte_id: int):
+    """Recupera el contenido de un reporte guardado por su ID."""
+    response = supabase.table('reportes').select('*').eq('id', reporte_id).execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Reporte no encontrado")
+    return response.data[0]
+
 
 @app.get("/reportes/ventas/resumen", tags=["Reportes de Ventas"])
 def resumen_ventas_general():
