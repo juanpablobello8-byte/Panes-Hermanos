@@ -9,9 +9,15 @@ class EmpleadoBase(BaseModel):
     nombre: str
     puesto: str
     telefono: Optional[str] = None
+    usuario: Optional[str] = None
+    rol: Optional[str] = 'Cajero'
 
 class EmpleadoCreate(EmpleadoBase):
-    pass
+    password: str
+
+class LoginRequest(BaseModel):
+    usuario: str
+    password: str
 
 class Empleado(EmpleadoBase):
     id: int
@@ -48,6 +54,26 @@ def eliminar_empleado(empleado_id: int):
     """Elimina empleado de Supabase."""
     supabase.table('empleados').delete().eq('id', empleado_id).execute()
     return None
+
+@app.post("/empleados/login", tags=["Autenticación"])
+def login(request: LoginRequest):
+    """Verifica credenciales del usuario."""
+    response = supabase.table('empleados').select('*').eq('usuario', request.usuario).eq('password', request.password).execute()
+    usuarios = response.data
+    
+    if not usuarios:
+        raise HTTPException(status_code=401, detail="Usuario o contraseña incorrectos")
+        
+    usuario = usuarios[0]
+    return {
+        "success": True,
+        "usuario": {
+            "id": usuario["id"],
+            "nombre": usuario["nombre"],
+            "usuario": usuario["usuario"],
+            "rol": usuario["rol"]
+        }
+    }
 
 if __name__ == "__main__":
     import sys

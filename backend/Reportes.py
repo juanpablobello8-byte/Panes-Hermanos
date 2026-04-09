@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from core.database import supabase
 from typing import List, Dict, Any, Optional
+from datetime import datetime
 
 # ------ Aplicación FastAPI principal ------
 app = FastAPI(
@@ -53,6 +54,50 @@ def resumen_ventas_general():
         "total_transacciones": total_transacciones,
         "total_ingresos": total_ingresos,
         "promedio_por_venta": total_ingresos / total_transacciones if total_transacciones > 0 else 0
+    }
+
+@app.get("/reportes/ventas/dia", tags=["Reportes de Ventas"])
+def resumen_ventas_dia():
+    """Calcula las ventas y total de ingresos del día actual."""
+    response = supabase.table('ventas').select('total, fecha_venta').execute()
+    ventas = response.data
+    
+    hoy = datetime.now().date()
+    ventas_hoy = []
+    for v in ventas:
+        try:
+            fecha = datetime.fromisoformat(v['fecha_venta'].replace('Z', '+00:00')).date()
+            if fecha == hoy:
+                ventas_hoy.append(v)
+        except Exception:
+            pass
+
+    total_ingresos = sum([v['total'] for v in ventas_hoy])
+    return {
+        "ventas_hoy": len(ventas_hoy),
+        "total_ingresos": total_ingresos
+    }
+
+@app.get("/reportes/ventas/mes", tags=["Reportes de Ventas"])
+def resumen_ventas_mes():
+    """Calcula las ventas y total de ingresos del mes actual."""
+    response = supabase.table('ventas').select('total, fecha_venta').execute()
+    ventas = response.data
+    
+    hoy = datetime.now()
+    ventas_mes = []
+    for v in ventas:
+        try:
+            fecha = datetime.fromisoformat(v['fecha_venta'].replace('Z', '+00:00'))
+            if fecha.year == hoy.year and fecha.month == hoy.month:
+                ventas_mes.append(v)
+        except Exception:
+            pass
+
+    total_ingresos = sum([v['total'] for v in ventas_mes])
+    return {
+        "ventas_mes": len(ventas_mes),
+        "total_ingresos": total_ingresos
     }
 
 @app.get("/reportes/productos/mas_vendidos", tags=["Reportes de Análisis"])

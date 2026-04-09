@@ -19,6 +19,7 @@ class DetalleVenta(DetalleVentaBase):
 class VentaBase(BaseModel):
     detalles: List[DetalleVentaBase]
     metodo_pago: str
+    empleado_id: Optional[int] = None
 
 class VentaCreate(VentaBase):
     pass
@@ -28,6 +29,7 @@ class Venta(BaseModel):
     fecha_venta: datetime
     total: float
     metodo_pago: str
+    empleado_id: Optional[int] = None
     detalles: Optional[List[DetalleVenta]] = []
 
 # ------ Aplicación FastAPI principal ------
@@ -83,7 +85,8 @@ def registrar_venta(venta_base: VentaCreate):
     # 1. Insertar la tabla padre (venta)
     venta_insert = {
         "total": total_venta,
-        "metodo_pago": venta_base.metodo_pago
+        "metodo_pago": venta_base.metodo_pago,
+        "empleado_id": venta_base.empleado_id
     }
     
     venta_response = supabase.table('ventas').insert(venta_insert).execute()
@@ -104,7 +107,8 @@ def registrar_venta(venta_base: VentaCreate):
         "fecha_venta": nueva_venta["created_at"],
         "total": nueva_venta["total"],
         "metodo_pago": nueva_venta["metodo_pago"],
-        "detalles": nueva_venta["detalles_venta"]
+        "empleado_id": nueva_venta.get("empleado_id"),
+        "detalles": nueva_venta.get("detalles_venta", [])
     }
     
     # 3. Autogenerar y Guardar Reporte en Base de Datos

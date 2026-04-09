@@ -89,18 +89,38 @@
     <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        document.getElementById('form-login').addEventListener('submit', function (e) {
+        document.getElementById('form-login').addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const usuario = document.getElementById('username').value;
             const pass = document.getElementById('password').value;
 
-            // Simulador de validación básica
             if (usuario && pass) {
-                // Guardamos el nombre en LocalStorage para usarlo en el header de index.html
-                localStorage.setItem('ph_usuario_activo', usuario);
-                // Redirigir al panel principal
-                window.location.href = 'index.html';
+                try {
+                    const response = await fetch('http://localhost:8000/api/empleados/empleados/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ usuario: usuario, password: pass })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Guardamos datos en LocalStorage para usarlo en el header de index.html
+                        localStorage.setItem('ph_usuario_activo', data.usuario.nombre);
+                        localStorage.setItem('ph_rol_activo', data.usuario.rol);
+                        localStorage.setItem('ph_empleado_id', data.usuario.id);
+                        
+                        // Redirigir al panel principal
+                        window.location.href = 'index.html';
+                    } else {
+                        alert('Usuario o contraseña incorrectos');
+                    }
+                } catch (error) {
+                    console.error('Error de conexión:', error);
+                    alert('Error al intentar conectar con el servidor. ¿Está el backend encendido?');
+                }
             }
         });
     </script>
