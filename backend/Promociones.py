@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
@@ -25,6 +26,14 @@ app = FastAPI(
     title="API de Promociones - Panadería",
     description="API conectada a Supabase para gestionar las promociones.",
     version="2.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/promociones", response_model=List[Promocion], tags=["Promociones"])
@@ -74,5 +83,8 @@ def eliminar_promocion(promocion_id: int):
     return None
 
 if __name__ == "__main__":
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import uvicorn
-    uvicorn.run("backend.Promociones:app", host="0.0.0.0", port=8001, reload=True)
+    uvicorn.run("Promociones:app", host="0.0.0.0", port=8001, reload=True)

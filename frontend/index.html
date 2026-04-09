@@ -80,6 +80,13 @@
       </li>
 
       <li class="nav-item">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-promociones')">
+          <i class="bi bi-tags"></i>
+          <span>Promociones</span>
+        </a>
+      </li>
+
+      <li class="nav-item">
         <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-empleados')">
           <i class="bi bi-people"></i>
           <span>Empleados</span>
@@ -255,6 +262,50 @@
                 </table>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="modulo-promociones" class="modulo" style="display: none;">
+      <div class="pagetitle">
+        <h1>Gestión de Promociones</h1>
+      </div>
+
+      <section class="section">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Nueva Promoción</h5>
+            <form id="form-promociones" class="row g-3" onsubmit="agregarPromocion(event)">
+              <div class="col-md-5">
+                <input type="text" class="form-control" id="promo-nombre" placeholder="Nombre de promoción (ej. 2x1 Conchas)" required>
+              </div>
+              <div class="col-md-5">
+                <input type="text" class="form-control" id="promo-desc" placeholder="Descripción detallada" required>
+              </div>
+              <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                  <i class="bi bi-plus-circle me-1"></i> Crear
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-body">
+            <h5 class="card-title">Promociones Activas</h5>
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th scope="col">Promoción</th>
+                  <th scope="col">Descripción</th>
+                  <th scope="col">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tabla-promociones">
+                </tbody>
+            </table>
           </div>
         </div>
       </section>
