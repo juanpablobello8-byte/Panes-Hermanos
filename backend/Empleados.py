@@ -7,7 +7,6 @@ from core.database import supabase
 # ------ Esquemas Pydantic ------
 class EmpleadoBase(BaseModel):
     nombre: str
-    puesto: str
     telefono: Optional[str] = None
     usuario: Optional[str] = None
     rol: Optional[str] = 'Cajero'

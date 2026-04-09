@@ -321,18 +321,15 @@
           <div class="card-body">
             <h5 class="card-title">Registrar Nuevo Empleado</h5>
             <form id="form-empleados" class="row g-3" onsubmit="agregarEmpleado(event)">
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <input type="text" class="form-control" id="emp-nombre" placeholder="Nombre completo" required>
               </div>
-              <div class="col-md-3">
-                <input type="text" class="form-control" id="emp-puesto" placeholder="Puesto (ej. Panadero)" required>
-              </div>
-              <div class="col-md-2">
+              <div class="col-md-4">
                 <input type="tel" class="form-control" id="emp-telefono" placeholder="Teléfono" required>
               </div>
               <div class="col-md-2">
                 <select id="emp-rol" class="form-select" required>
-                  <option value="" disabled selected>Selecciona Rol</option>
+                  <option value="" disabled selected>Selecciona un Rol</option>
                   <option value="Administrador">Administrador</option>
                   <option value="Cajero">Cajero</option>
                 </select>
@@ -359,8 +356,9 @@
               <thead>
                 <tr>
                   <th scope="col">Nombre</th>
-                  <th scope="col">Puesto</th>
+                  <th scope="col">Rol</th>
                   <th scope="col">Teléfono</th>
+                  <th scope="col">Usuario de Acceso</th>
                   <th scope="col">Acción</th>
                 </tr>
               </thead>

@@ -261,7 +261,6 @@ async function obtenerEmpleadosDeServidor() {
 async function agregarEmpleado(evento) {
     evento.preventDefault();
     let nombre = document.getElementById('emp-nombre').value;
-    let puesto = document.getElementById('emp-puesto').value;
     let telefono = document.getElementById('emp-telefono').value;
     let usuario = document.getElementById('emp-usuario').value;
     let password = document.getElementById('emp-password').value;
@@ -269,7 +268,6 @@ async function agregarEmpleado(evento) {
 
     let nuevoEmpleadoReq = { 
         nombre: nombre, 
-        puesto: puesto, 
         telefono: telefono,
         usuario: usuario,
         rol: rol,
@@ -312,8 +310,9 @@ function renderizarEmpleados() {
         tbody.innerHTML += `
             <tr>
                 <td class="fw-bold text-dark">${empleado.nombre}</td>
-                <td><span class="badge bg-secondary">${empleado.puesto}</span></td>
+                <td><span class="badge bg-secondary">${empleado.rol}</span></td>
                 <td>${empleado.telefono || '-'}</td>
+                <td><span class="text-primary font-monospace">${empleado.usuario}</span></td>
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="eliminarEmpleado(${empleado.id})">
                         <i class="bi bi-person-x"></i>
