@@ -1,21 +1,20 @@
 /* =========================================
-   CONFIGURACIÓN DE LA API
+   CONFIGURACIÓN DE LA API UNIFICADA
    ========================================= */
-const IP_LOCAL = 'http://localhost'; 
-const API_INVENTARIO = `${IP_LOCAL}:8000`;
-const API_VENTAS = `${IP_LOCAL}:8002`;
-const API_REPORTES = `${IP_LOCAL}:8003`;
+const API_BASE = 'http://localhost:8000/api'; 
+const API_INVENTARIO = `${API_BASE}/inventario`;
+const API_VENTAS = `${API_BASE}/ventas`;
+const API_REPORTES = `${API_BASE}/reportes`;
+const API_EMPLEADOS = `${API_BASE}/empleados`;
+const API_PROMOCIONES = `${API_BASE}/promociones`;
 
 /* =========================================
-   ESTADO DE LA APLICACIÓN (Datos locales temporales)
+   ESTADO DE LA APLICACIÓN
    ========================================= */
 let inventario = []; 
-let empleados = JSON.parse(localStorage.getItem('ph_empleados')) || []; // Empleados sigo en local por ahora
+let empleados = []; 
+let promociones = [];
 let carrito = [];
-
-function guardarDatosEmpleados() {
-    localStorage.setItem('ph_empleados', JSON.stringify(empleados));
-}
 
 /* =========================================
    NAVEGACIÓN Y UI
@@ -33,28 +32,30 @@ function actualizarSidebar(idModuloActive) {
     links.forEach(link => link.classList.add('collapsed'));
     let indice = 0;
     if(idModuloActive === 'modulo-inventario') indice = 1;
-    if(idModuloActive === 'modulo-empleados') indice = 2;
-    if(idModuloActive === 'modulo-reportes') indice = 3;
+    if(idModuloActive === 'modulo-promociones') indice = 2;
+    if(idModuloActive === 'modulo-empleados') indice = 3;
+    if(idModuloActive === 'modulo-reportes') indice = 4;
     if(links[indice]) links[indice].classList.remove('collapsed');
 }
 
 async function actualizarVistas() {
     await obtenerInventarioDeServidor();
+    await obtenerEmpleadosDeServidor();
+    await obtenerPromocionesDeServidor();
     renderizarInventario();
     renderizarEmpleados();
+    renderizarPromociones();
     renderizarProductosVenta();
     renderizarReportes();
 }
 
 /* =========================================
-   MÓDULO: INVENTARIO (Conectado a FastAPI :8000)
+   MÓDULO: INVENTARIO (Supabase)
    ========================================= */
 async function obtenerInventarioDeServidor() {
     try {
         const respuesta = await fetch(`${API_INVENTARIO}/productos`);
-        if(respuesta.ok) {
-            inventario = await respuesta.json();
-        }
+        if(respuesta.ok) inventario = await respuesta.json();
     } catch (e) {
         console.error("Error obteniendo inventario:", e);
     }
@@ -70,7 +71,7 @@ async function agregarProducto(evento) {
         nombre: nombre,
         precio: precio,
         cantidad_en_stock: stock,
-        categoria: "Pan Dulce" // Categoria por defecto
+        categoria: "Pan Dulce" 
     };
 
     try {
@@ -91,15 +92,9 @@ async function agregarProducto(evento) {
 async function eliminarProducto(id) {
     if(confirm('¿Seguro que deseas eliminar este producto en la base de datos?')) {
         try {
-            const respuesta = await fetch(`${API_INVENTARIO}/productos/${id}`, {
-                method: 'DELETE'
-            });
-            if(respuesta.ok || respuesta.status === 204) {
-                await actualizarVistas();
-            }
-        } catch (e) {
-            console.error("Error eliminando producto:", e);
-        }
+            const respuesta = await fetch(`${API_INVENTARIO}/productos/${id}`, { method: 'DELETE' });
+            if(respuesta.ok || respuesta.status === 204) await actualizarVistas();
+        } catch (e) { console.error("Error eliminando producto:", e); }
     }
 }
 
@@ -123,12 +118,8 @@ async function editarProducto(id) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(productoActualizado)
             });
-            if(respuesta.ok) {
-                await actualizarVistas();
-            }
-        } catch (e) {
-            console.error("Error actualizando producto:", e);
-        }
+            if(respuesta.ok) await actualizarVistas();
+        } catch (e) { console.error("Error actualizando producto:", e); }
     }
 }
 
@@ -157,25 +148,114 @@ function renderizarInventario() {
 }
 
 /* =========================================
-   MÓDULO: EMPLEADOS (Persistencia Local Temporal)
+   MÓDULO: PROMOCIONES (Supabase)
    ========================================= */
-function agregarEmpleado(evento) {
+async function obtenerPromocionesDeServidor() {
+    try {
+        const respuesta = await fetch(`${API_PROMOCIONES}/promociones`);
+        if(respuesta.ok) promociones = await respuesta.json();
+    } catch (e) {
+        console.error("Error obteniendo promociones:", e);
+    }
+}
+
+async function agregarPromocion(evento) {
+    evento.preventDefault();
+    let nombre = document.getElementById('promo-nombre').value;
+    let descripcion = document.getElementById('promo-desc').value;
+
+    let nuevaPromoReq = { 
+        nombre: nombre, 
+        descripcion: descripcion,
+        descuento_porcentaje: 0,
+        fecha_inicio: new Date().toISOString().split('T')[0],
+        fecha_fin: new Date().toISOString().split('T')[0]
+    };
+
+    try {
+        const respuesta = await fetch(`${API_PROMOCIONES}/promociones`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevaPromoReq)
+        });
+        if(respuesta.ok) {
+            document.getElementById('form-promociones').reset();
+            await actualizarVistas();
+        }
+    } catch (e) {
+        console.error("Error añadiendo promoción:", e);
+    }
+}
+
+async function eliminarPromocion(id) {
+    if(confirm('¿Seguro que deseas eliminar esta promoción?')) {
+        try {
+            const respuesta = await fetch(`${API_PROMOCIONES}/promociones/${id}`, { method: 'DELETE' });
+            if(respuesta.ok || respuesta.status === 204) await actualizarVistas();
+        } catch (e) { console.error("Error eliminando promoción:", e); }
+    }
+}
+
+function renderizarPromociones() {
+    let tbody = document.getElementById('tabla-promociones');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    promociones.forEach(promo => {
+        tbody.innerHTML += `
+            <tr>
+                <td class="fw-bold text-dark">${promo.nombre}</td>
+                <td>${promo.descripcion || '-'}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm" onclick="eliminarPromocion(${promo.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+/* =========================================
+   MÓDULO: EMPLEADOS (Supabase)
+   ========================================= */
+async function obtenerEmpleadosDeServidor() {
+    try {
+        const respuesta = await fetch(`${API_EMPLEADOS}/empleados`);
+        if(respuesta.ok) empleados = await respuesta.json();
+    } catch (e) {
+        console.error("Error obteniendo empleados:", e);
+    }
+}
+
+async function agregarEmpleado(evento) {
     evento.preventDefault();
     let nombre = document.getElementById('emp-nombre').value;
     let puesto = document.getElementById('emp-puesto').value;
     let telefono = document.getElementById('emp-telefono').value;
 
-    empleados.push({ id: Date.now(), nombre, puesto, telefono });
-    guardarDatosEmpleados();
-    renderizarEmpleados();
-    document.getElementById('form-empleados').reset();
+    let nuevoEmpleadoReq = { nombre, puesto, telefono };
+
+    try {
+        const respuesta = await fetch(`${API_EMPLEADOS}/empleados`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevoEmpleadoReq)
+        });
+        if(respuesta.ok) {
+            document.getElementById('form-empleados').reset();
+            await actualizarVistas();
+        }
+    } catch (e) {
+        console.error("Error añadiendo empleado:", e);
+    }
 }
 
-function eliminarEmpleado(id) {
-    if(confirm('¿Seguro que deseas eliminar este empleado?')) {
-        empleados = empleados.filter(empleado => empleado.id !== id);
-        guardarDatosEmpleados();
-        renderizarEmpleados();
+async function eliminarEmpleado(id) {
+    if(confirm('¿Seguro que deseas dar de baja a este empleado en Supabase?')) {
+        try {
+            const respuesta = await fetch(`${API_EMPLEADOS}/empleados/${id}`, { method: 'DELETE' });
+            if(respuesta.ok || respuesta.status === 204) await actualizarVistas();
+        } catch (e) { console.error("Error eliminando empleado:", e); }
     }
 }
 
@@ -188,7 +268,7 @@ function renderizarEmpleados() {
             <tr>
                 <td class="fw-bold text-dark">${empleado.nombre}</td>
                 <td><span class="badge bg-secondary">${empleado.puesto}</span></td>
-                <td>${empleado.telefono}</td>
+                <td>${empleado.telefono || '-'}</td>
                 <td>
                     <button class="btn btn-danger btn-sm" onclick="eliminarEmpleado(${empleado.id})">
                         <i class="bi bi-person-x"></i>
@@ -200,7 +280,7 @@ function renderizarEmpleados() {
 }
 
 /* =========================================
-   MÓDULO: VENTAS (Conectado a FastAPI :8002)
+   MÓDULO: VENTAS (Punto de Venta)
    ========================================= */
 function renderizarProductosVenta() {
     let contenedor = document.getElementById('contenedor-productos-venta');
@@ -304,18 +384,18 @@ async function finalizarVenta() {
 
         const ventaGuardada = await respuesta.json();
         carrito = [];
-        await actualizarVistas();
+        await actualizarVistas(); // Actualiza el stock general desde el servidor
         renderizarCarrito(); 
         
         alert(`¡Venta #${ventaGuardada.id} cobrada con éxito y reportada!`);
     } catch (error) {
         console.error("Hubo un problema de conexión:", error);
-        alert("Asegúrate de que la API de Ventas esté corriendo en localhost:8002.");
+        alert("Asegúrate de que el API Gateway esté encendido.");
     }
 }
 
 /* =========================================
-   MÓDULO: REPORTES (Conectado a FastAPI :8003)
+   MÓDULO: REPORTES
    ========================================= */
 async function renderizarReportes() {
     let tbody = document.getElementById('tabla-reportes');
@@ -333,7 +413,7 @@ async function renderizarReportes() {
         }
 
         const respuestaVentas = await fetch(`${API_VENTAS}/ventas`);
-        if (!respuestaVentas.ok) throw new Error("No se pudieron cargar el historial.");
+        if (!respuestaVentas.ok) throw new Error("Historial no encontrado.");
 
         const ventasBD = await respuestaVentas.json();
         tbody.innerHTML = '';
@@ -350,7 +430,7 @@ async function renderizarReportes() {
         });
     } catch (error) {
         console.error("Error al cargar reportes:", error);
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error conectando con localhost:8002 / :8003</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error conectando con el servidor (Reportes)</td></tr>`;
     }
 }
 
