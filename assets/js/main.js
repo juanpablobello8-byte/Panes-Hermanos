@@ -32,9 +32,14 @@ function actualizarSidebar(idModuloActive) {
     links.forEach(link => link.classList.add('collapsed'));
     let indice = 0;
     if(idModuloActive === 'modulo-inventario') indice = 1;
-    if(idModuloActive === 'modulo-promociones') indice = 2;
-    if(idModuloActive === 'modulo-empleados') indice = 3;
-    if(idModuloActive === 'modulo-reportes') indice = 4;
+
+    const rol = localStorage.getItem('ph_rol_activo');
+    if (rol !== 'Cajero') {
+        if(idModuloActive === 'modulo-promociones') indice = 2;
+        if(idModuloActive === 'modulo-empleados') indice = 3;
+        if(idModuloActive === 'modulo-reportes') indice = 4;
+    }
+    
     if(links[indice]) links[indice].classList.remove('collapsed');
 }
 
@@ -47,6 +52,27 @@ async function actualizarVistas() {
     renderizarPromociones();
     renderizarProductosVenta();
     renderizarReportes();
+    renderizarVentasStats();
+}
+
+async function renderizarVentasStats() {
+    try {
+        const resDia = await fetch(`${API_REPORTES}/reportes/ventas/dia`);
+        if (resDia.ok) {
+            const dataDia = await resDia.json();
+            const elDia = document.getElementById('ventas-dia');
+            if (elDia) elDia.innerText = dataDia.total_ingresos.toFixed(2);
+        }
+
+        const resMes = await fetch(`${API_REPORTES}/reportes/ventas/mes`);
+        if (resMes.ok) {
+            const dataMes = await resMes.json();
+            const elMes = document.getElementById('ventas-mes');
+            if (elMes) elMes.innerText = dataMes.total_ingresos.toFixed(2);
+        }
+    } catch (e) {
+        console.error('Error cargando stats de ventas:', e);
+    }
 }
 
 /* =========================================
@@ -128,20 +154,25 @@ function renderizarInventario() {
     if(!tbody) return;
     tbody.innerHTML = ''; 
 
+    const rol = localStorage.getItem('ph_rol_activo');
+    let columnasAcciones = rol === 'Cajero' ? '' : `
+        <td>
+            <button class="btn btn-warning btn-sm" onclick="editarProducto(${producto.id})">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="eliminarProducto(${producto.id})">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+
     inventario.forEach(producto => {
         tbody.innerHTML += `
             <tr>
                 <td class="fw-bold text-dark">${producto.nombre}</td>
                 <td>$${producto.precio.toFixed(2)}</td>
                 <td>${producto.cantidad_en_stock}</td>
-                <td>
-                    <button class="btn btn-warning btn-sm" onclick="editarProducto(${producto.id})">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="eliminarProducto(${producto.id})">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
+                ${columnasAcciones}
             </tr>
         `;
     });
@@ -232,8 +263,18 @@ async function agregarEmpleado(evento) {
     let nombre = document.getElementById('emp-nombre').value;
     let puesto = document.getElementById('emp-puesto').value;
     let telefono = document.getElementById('emp-telefono').value;
+    let usuario = document.getElementById('emp-usuario').value;
+    let password = document.getElementById('emp-password').value;
+    let rol = document.getElementById('emp-rol').value;
 
-    let nuevoEmpleadoReq = { nombre, puesto, telefono };
+    let nuevoEmpleadoReq = { 
+        nombre: nombre, 
+        puesto: puesto, 
+        telefono: telefono,
+        usuario: usuario,
+        rol: rol,
+        password: password
+    };
 
     try {
         const respuesta = await fetch(`${API_EMPLEADOS}/empleados`, {
@@ -244,6 +285,10 @@ async function agregarEmpleado(evento) {
         if(respuesta.ok) {
             document.getElementById('form-empleados').reset();
             await actualizarVistas();
+            alert('Empleado registrado exitosamente.');
+        } else {
+            const data = await respuesta.json();
+            alert(`Error: ${data.detail || 'No se pudo crear empleado'}`);
         }
     } catch (e) {
         console.error("Error añadiendo empleado:", e);
@@ -368,9 +413,12 @@ async function finalizarVenta() {
         };
     });
 
+    const empleadoActivo = localStorage.getItem('ph_empleado_id');
+
     const ventaData = {
         detalles: detallesParaBackend,
-        metodo_pago: "Efectivo"
+        metodo_pago: "Efectivo",
+        empleado_id: empleadoActivo ? parseInt(empleadoActivo) : null
     };
 
     try {
@@ -435,5 +483,38 @@ async function renderizarReportes() {
 }
 
 window.addEventListener('load', () => {
+    const usuarioActivo = localStorage.getItem('ph_usuario_activo');
+    const rolActivo = localStorage.getItem('ph_rol_activo');
+
+    if (!usuarioActivo) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Actualiza headers del UI con los datos reales
+    document.getElementById('header-user-name').textContent = usuarioActivo;
+    document.getElementById('header-user-fullname').textContent = usuarioActivo;
+    document.getElementById('header-user-rol').textContent = rolActivo || 'Cajero';
+
+    // Ocultar características de admin si es cajero
+    if (rolActivo === 'Cajero') {
+        const adminLinks = document.querySelectorAll('.nav-item-admin');
+        adminLinks.forEach(el => el.style.display = 'none');
+        
+        const formAdmins = document.querySelectorAll('.form-admin-only');
+        formAdmins.forEach(el => el.style.display = 'none');
+        
+        // Ocultar cabecera de "Acciones" en la tabla de inventario
+        const inventarioHeader = document.querySelector('#modulo-inventario table thead tr');
+        if(inventarioHeader && inventarioHeader.children.length > 3) {
+            inventarioHeader.children[3].style.display = 'none';
+        }
+    }
+
     actualizarVistas();
 });
+
+function cerrarSesion() {
+    localStorage.clear();
+    window.location.href = 'login.html';
+}
