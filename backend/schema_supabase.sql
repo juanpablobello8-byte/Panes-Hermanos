@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS ventas (
     total NUMERIC NOT NULL,
     metodo_pago TEXT NOT NULL,
     empleado_id BIGINT REFERENCES empleados(id) ON DELETE SET NULL,
+    efectivo_recibido NUMERIC,
+    cambio_entregado NUMERIC,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
