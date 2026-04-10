@@ -15,6 +15,7 @@ let inventario = [];
 let empleados = []; 
 let promociones = [];
 let carrito = [];
+let historialVentas = [];
 
 /* =========================================
    NAVEGACIÓN Y UI
@@ -151,22 +152,60 @@ async function editarProducto(id) {
 
 function renderizarInventario() {
     let tbody = document.getElementById('tabla-inventario');
+    
+    // --- NUEVO: CALCULAR STOCK TOTAL Y ACTUALIZAR TARJETA ---
+    let totalStock = 0;
+    inventario.forEach(p => totalStock += p.cantidad_en_stock);
+    
+    let textoNivel = "";
+    let claseColor = "";
+    let accionTexto = "";
+    
+    if (totalStock >= 500) {
+        textoNivel = "| Stock Alto";
+        claseColor = "text-success";
+        accionTexto = "Inventario Sano";
+    } else if (totalStock >= 350) {
+        textoNivel = "| Stock Medio";
+        claseColor = "text-primary";
+        accionTexto = "Nivel Aceptable";
+    } else {
+        textoNivel = "| Stock Bajo";
+        claseColor = "text-danger";
+        accionTexto = "Revisar Stock";
+    }
+    
+    let elNivel = document.getElementById("inventario-nivel-texto");
+    let elTotal = document.getElementById("inventario-total-panes");
+    let elAccion = document.getElementById("inventario-accion-texto");
+    
+    if (elNivel) {
+        elNivel.innerText = textoNivel;
+        elNivel.className = claseColor;
+    }
+    if (elTotal) elTotal.innerText = `${totalStock} Panes`;
+    if (elAccion) {
+        elAccion.innerText = accionTexto;
+        elAccion.className = `${claseColor} small pt-1 fw-bold`;
+    }
+    // -----------------------------------------------------
+
     if(!tbody) return;
     tbody.innerHTML = ''; 
 
     const rol = localStorage.getItem('ph_rol_activo');
-    let columnasAcciones = rol === 'Cajero' ? '' : `
-        <td>
-            <button class="btn btn-warning btn-sm" onclick="editarProducto(${producto.id})">
-                <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-danger btn-sm" onclick="eliminarProducto(${producto.id})">
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    `;
-
     inventario.forEach(producto => {
+        let columnasAcciones = rol === 'Cajero' ? '' : `
+            <td>
+                <button class="btn btn-warning btn-sm" onclick="editarProducto(${producto.id})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarProducto(${producto.id})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        
         tbody.innerHTML += `
             <tr>
                 <td class="fw-bold text-dark">${producto.nombre}</td>
@@ -398,7 +437,71 @@ function renderizarCarrito() {
     document.getElementById('total-venta').innerText = total.toFixed(2);
 }
 
-async function finalizarVenta() {
+function abrirModalCobro() {
+    if (carrito.length === 0) {
+        alert("El carrito está vacío. Agregue productos para cobrar.");
+        return;
+    }
+
+    let lista = document.getElementById("lista-resumen-cobro");
+    lista.innerHTML = "";
+    let totalPagar = 0;
+
+    carrito.forEach(item => {
+        let subtotal = item.precio * item.cantidad;
+        totalPagar += subtotal;
+        lista.innerHTML += `
+            <li class="list-group-item d-flex justify-content-between align-items-center p-2">
+                <div>
+                   <span class="fw-bold text-dark">${item.nombre}</span> <br>
+                   <small class="text-muted">${item.cantidad} x $${item.precio.toFixed(2)}</small>
+                </div>
+                <span class="fw-bold">$${subtotal.toFixed(2)}</span>
+            </li>
+        `;
+    });
+
+    document.getElementById("cobro-total").innerText = totalPagar.toFixed(2);
+    document.getElementById("cobro-efectivo").value = ""; 
+    document.getElementById("alerta-cambio").className = "alert alert-secondary text-center";
+    document.getElementById("alerta-cambio").innerText = "Ingrese el monto con el que paga el cliente.";
+    document.getElementById("btn-confirmar-cobro").disabled = true;
+
+    let modalElement = document.getElementById('modal-cobro');
+    let modal = bootstrap.Modal.getInstance(modalElement);
+    if (!modal) modal = new bootstrap.Modal(modalElement);
+    modal.show();
+}
+
+function calcularCambio() {
+    let unparsedTotal = document.getElementById("cobro-total").innerText;
+    let totalPagar = parseFloat(unparsedTotal);
+    let efectivo = parseFloat(document.getElementById("cobro-efectivo").value);
+
+    let alerta = document.getElementById("alerta-cambio");
+    let btnConfirmar = document.getElementById("btn-confirmar-cobro");
+
+    if (isNaN(efectivo) || efectivo <= 0) {
+        alerta.className = "alert alert-secondary text-center";
+        alerta.innerText = "Ingrese el monto con el que paga el cliente.";
+        btnConfirmar.disabled = true;
+        return;
+    }
+
+    if (efectivo < totalPagar) {
+        let falta = totalPagar - efectivo;
+        alerta.className = "alert alert-danger text-center fw-bold";
+        alerta.innerText = "Faltan: $" + falta.toFixed(2);
+        btnConfirmar.disabled = true;
+    } else {
+        let cambio = efectivo - totalPagar;
+        alerta.className = "alert alert-success text-center fw-bold fs-5";
+        alerta.innerText = "Cambio a entregar: $" + cambio.toFixed(2);
+        btnConfirmar.disabled = false;
+    }
+}
+
+async function procesarVenta() {
     if (carrito.length === 0) {
         alert("El carrito está vacío.");
         return;
@@ -413,11 +516,17 @@ async function finalizarVenta() {
     });
 
     const empleadoActivo = localStorage.getItem('ph_empleado_id');
+    let efectivo = parseFloat(document.getElementById("cobro-efectivo").value);
+    let unparsedTotal = document.getElementById("cobro-total").innerText;
+    let totalPagar = parseFloat(unparsedTotal);
+    let cambio = efectivo - totalPagar;
 
     const ventaData = {
         detalles: detallesParaBackend,
         metodo_pago: "Efectivo",
-        empleado_id: empleadoActivo ? parseInt(empleadoActivo) : null
+        empleado_id: empleadoActivo ? parseInt(empleadoActivo) : null,
+        efectivo_recibido: efectivo,
+        cambio_entregado: cambio
     };
 
     try {
@@ -430,11 +539,17 @@ async function finalizarVenta() {
         if (!respuesta.ok) throw new Error("Error registrando venta.");
 
         const ventaGuardada = await respuesta.json();
+
         carrito = [];
         await actualizarVistas(); // Actualiza el stock general desde el servidor
         renderizarCarrito(); 
         
+        let modalElement = document.getElementById('modal-cobro');
+        let modal = bootstrap.Modal.getInstance(modalElement);
+        if (modal) modal.hide();
+        
         alert(`¡Venta #${ventaGuardada.id} cobrada con éxito y reportada!`);
+        imprimirTicket(ventaGuardada.id, efectivo, cambio);
     } catch (error) {
         console.error("Hubo un problema de conexión:", error);
         alert("Asegúrate de que el API Gateway esté encendido.");
@@ -463,15 +578,21 @@ async function renderizarReportes() {
         if (!respuestaVentas.ok) throw new Error("Historial no encontrado.");
 
         const ventasBD = await respuestaVentas.json();
+        historialVentas = ventasBD;
         tbody.innerHTML = '';
         
-        [...ventasBD].reverse().forEach(venta => {
+        [...historialVentas].reverse().forEach(venta => {
             let fecha = new Date(venta.fecha_venta).toLocaleString();
             tbody.innerHTML += `
-                <tr>
-                    <td class="text-primary">#${venta.id}</td>
+                <tr class="fila-reporte">
+                    <td class="text-primary id-venta">#${venta.id}</td>
                     <td>${fecha} <br><small class="text-muted">Completada</small></td>
                     <td class="fw-bold text-success">$${venta.total.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-outline-info btn-sm" onclick="verDetallesVenta(${venta.id})">
+                            <i class="bi bi-eye"></i> Ver Detalle
+                        </button>
+                    </td>
                 </tr>
             `;
         });
@@ -516,4 +637,160 @@ window.addEventListener('load', () => {
 function cerrarSesion() {
     localStorage.clear();
     window.location.href = 'login.html';
+}
+
+/* =========================================
+   MÉTODOS NUEVOS: TICKETS Y CORTES DE CAJA
+   ========================================= */
+
+function filtrarReportes() {
+    let input = document.getElementById("busqueda-reportes").value.toLowerCase();
+    let filas = document.querySelectorAll("#tabla-reportes .fila-reporte");
+    
+    filas.forEach(fila => {
+        let idVenta = fila.querySelector(".id-venta").innerText.toLowerCase();
+        if (idVenta.includes(input)) {
+            fila.style.display = "";
+        } else {
+            fila.style.display = "none";
+        }
+    });
+}
+
+function verDetallesVenta(id) {
+    let venta = historialVentas.find(v => v.id === id);
+    if (!venta) return;
+    
+    document.getElementById("modal-detalle-id").innerText = `#${venta.id}`;
+    let lista = document.getElementById("lista-detalles-venta");
+    lista.innerHTML = "";
+    
+    let detalles = venta.detalles || [];
+    if (venta.detalles_venta) detalles = venta.detalles_venta;
+    
+    if (detalles.length === 0) {
+        lista.innerHTML = "<li class='list-group-item text-center text-muted'>Sin detalles registrados.</li>";
+    } else {
+        detalles.forEach(d => {
+            let prod = inventario.find(p => p.id === d.producto_id);
+            let nombreProd = prod ? prod.nombre : `Producto ID ${d.producto_id}`;
+            lista.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${nombreProd} <span class="badge bg-secondary rounded-pill">x${d.cantidad}</span>
+                    <span>$${d.subtotal.toFixed(2)}</span>
+                </li>
+            `;
+        });
+        lista.innerHTML += `
+            <li class="list-group-item d-flex justify-content-between align-items-center fw-bold bg-light mt-2">
+                Total Pagado
+                <span class="text-success">$${venta.total.toFixed(2)}</span>
+            </li>
+        `;
+    }
+    
+    let modalElement = document.getElementById('modal-detalles-venta');
+    let modal = bootstrap.Modal.getInstance(modalElement);
+    if (!modal) modal = new bootstrap.Modal(modalElement);
+    modal.show();
+}
+
+function abrirModalCorteCaja() {
+    let modalElement = document.getElementById('modal-corte-caja');
+    let modal = bootstrap.Modal.getInstance(modalElement);
+    if (!modal) modal = new bootstrap.Modal(modalElement);
+    modal.show();
+}
+
+function imprimirCorteCaja() {
+    let dia = document.getElementById("ventas-dia").innerText;
+    let fecha = new Date().toLocaleString();
+    let ticketHtml = `
+        <div style="font-family: monospace; width: 300px; margin: 0 auto; text-align: center; padding: 20px;">
+            <h2 style="margin: 0;">PANES HERMANOS</h2>
+            <p>===================================</p>
+            <h3 style="margin: 5px 0;">CORTE DE CAJA</h3>
+            <p style="text-align: left; margin: 2px 0;">Fecha/Hora: ${fecha}</p>
+            <p style="text-align: left; margin: 2px 0;">Responsable: ${document.getElementById('header-user-name').textContent}</p>
+            <p>===================================</p>
+            <h3 style="margin: 10px 0;">TOTAL TURNO: <br>$${dia}</h3>
+            <p>===================================</p>
+            <p style="margin-top: 30px;">___________________________</p>
+            <p>Firma Administrador</p>
+        </div>
+    `;
+    let win = window.open('', '_blank');
+    win.document.write(ticketHtml);
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+        win.print();
+        win.close();
+    }, 500);
+}
+
+async function imprimirTicket(ventaId, efectivo = null, cambio = null) {
+    try {
+        const respuesta = await fetch(`${API_VENTAS}/ventas/${ventaId}`);
+        if (!respuesta.ok) return;
+        const venta = await respuesta.json();
+        
+        let fecha = new Date(venta.fecha_venta).toLocaleString();
+        let detallesPlantilla = "";
+        
+        let detalles = venta.detalles || [];
+        if (venta.detalles_venta) detalles = venta.detalles_venta;
+        
+        if(detalles) {
+            detalles.forEach(d => {
+                let prod = inventario.find(p => p.id === d.producto_id);
+                let nombreProd = prod ? prod.nombre : `Prod ${d.producto_id}`;
+                detallesPlantilla += `
+                    <tr>
+                        <td style="text-align: left; padding: 2px 0;">${nombreProd} <small>x${d.cantidad}</small></td>
+                        <td style="text-align: right; padding: 2px 0;">$${d.subtotal.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        let seccionCambio = "";
+        if (efectivo !== null && cambio !== null) {
+            seccionCambio = `
+                <p style="text-align: right; margin: 2px 0;">Efectivo: $${efectivo.toFixed(2)}</p>
+                <p style="text-align: right; margin: 2px 0;">Cambio: $${cambio.toFixed(2)}</p>
+            `;
+        }
+        
+        let ticketHtml = `
+            <div style="font-family: monospace; width: 300px; margin: 0 auto; text-align: center; padding: 20px; font-size: 14px;">
+                <h2 style="margin: 0;">PANES HERMANOS</h2>
+                <p style="margin: 5px 0;">¡El mejor pan de la ciudad!</p>
+                <p>===================================</p>
+                <p style="text-align: left; margin: 2px 0;">Ticket: #${venta.id}</p>
+                <p style="text-align: left; margin: 2px 0;">Fecha: ${fecha}</p>
+                <p style="text-align: left; margin: 2px 0;">Atendió: ${document.getElementById('header-user-name').textContent}</p>
+                <p>===================================</p>
+                <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                    ${detallesPlantilla}
+                </table>
+                <p>===================================</p>
+                <h3 style="text-align: right; margin: 5px 0;">TOTAL: $${venta.total.toFixed(2)}</h3>
+                ${seccionCambio}
+                <p>===================================</p>
+                <p>¡Gracias por su compra!</p>
+            </div>
+        `;
+        
+        let win = window.open('', '_blank');
+        win.document.write(ticketHtml);
+        win.document.close();
+        win.focus();
+        setTimeout(() => {
+            win.print();
+            win.close();
+        }, 500); 
+    } catch (e) {
+        console.error("Error al imprimir ticket:", e);
+    }
 }

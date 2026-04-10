@@ -13,7 +13,9 @@
   <link href="assets/img/ph.png" rel="apple-touch-icon">
 
   <link href="https://fonts.gstatic.com" rel="preconnect">
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i"
+    rel="stylesheet">
 
   <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
@@ -30,11 +32,12 @@
       <a href="index.html" class="logo d-flex align-items-center">
         <img src="assets/img/ph.png" alt="Logo Panes Hermanos" class="logo-header">
       </a>
-    </div><nav class="header-nav ms-auto">
+    </div>
+    <nav class="header-nav ms-auto">
       <ul class="d-flex align-items-center">
         <li class="nav-item dropdown pe-3">
           <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
-            <img src="assets/img/ph.png" alt="Profile" class="rounded-circle">
+            <img src="assets/img/eldabe.jpg" alt="Profile" class="rounded-circle">
             <span class="d-none d-md-block dropdown-toggle ps-2" id="header-user-name">Usuario</span>
           </a>
 
@@ -112,56 +115,40 @@
       </div>
 
       <section class="section dashboard">
-        
+
         <div class="row">
 
           <div class="col-xxl-4 col-md-6">
             <div class="card info-card ph-inventory-card">
               <div class="card-body">
-                <h5 class="card-title">Inventario <span>| Stock Bajo</span></h5>
+                <h5 class="card-title">Inventario <span id="inventario-nivel-texto">| Stock Bajo</span></h5>
                 <div class="d-flex align-items-center">
                   <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
                     <i class="bi bi-box-seam"></i>
                   </div>
                   <div class="ps-3">
-                    <h6>0 Panes</h6>
-                    <span class="text-warning small pt-1 fw-bold">Revisar Stock</span>
+                    <h6 id="inventario-total-panes">0 Panes</h6>
+                    <span id="inventario-accion-texto" class="text-warning small pt-1 fw-bold">Revisar Stock</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="col-xxl-4 col-md-6">
-            <div class="card info-card ph-day-sales-card">
+          <div class="col-xxl-4 col-md-6 form-admin-only">
+            <div class="card info-card">
               <div class="card-body">
-                <h5 class="card-title">Ventas del Día <span>| Hoy</span></h5>
-                <div class="d-flex align-items-center">
+                <h5 class="card-title">Caja y Turno <span>| Administrador</span></h5>
+                <div class="d-flex align-items-center mb-3">
                   <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                    <i class="bi bi-currency-dollar"></i>
+                    <i class="bi bi-wallet2"></i>
                   </div>
                   <div class="ps-3">
-                    <h6>$<span id="ventas-dia">0.00</span></h6>
-                    <span class="text-success small pt-1 fw-bold">En Caja Hoy</span>
+                    <h6>Cierre y Resumen</h6>
+                    <span class="text-primary small pt-1 fw-bold">Opciones de caja</span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-xxl-4 col-xl-12">
-            <div class="card info-card ph-month-sales-card">
-              <div class="card-body">
-                <h5 class="card-title">Ventas del Mes <span>| Actual</span></h5>
-                <div class="d-flex align-items-center">
-                  <div class="card-icon rounded-circle d-flex align-items-center justify-content-center">
-                    <i class="bi bi-graph-up-arrow"></i>
-                  </div>
-                  <div class="ps-3">
-                    <h6>$<span id="ventas-mes">0.00</span></h6>
-                    <span class="text-info small pt-1 fw-bold">Acumulado Mes</span>
-                  </div>
-                </div>
+                <button class="btn btn-outline-primary w-100" onclick="abrirModalCorteCaja()">Opciones de Corte de Caja</button>
               </div>
             </div>
           </div>
@@ -174,7 +161,7 @@
               <div class="card-body pb-0">
                 <h5 class="card-title">Selección de Panes</h5>
                 <div id="contenedor-productos-venta" class="row tarjetas-container pb-3">
-                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -193,7 +180,7 @@
                     </tr>
                   </thead>
                   <tbody id="tabla-carrito">
-                    </tbody>
+                  </tbody>
                 </table>
 
                 <div class="alert alert-info d-flex justify-content-between align-items-center mt-3" role="alert">
@@ -201,8 +188,8 @@
                   <span class="fw-bold fs-4">$<span id="total-venta">0.00</span></span>
                 </div>
 
-                <button class="btn btn-success btn-lg w-100 mt-2" onclick="finalizarVenta()">
-                  <i class="bi bi-cash-coin me-2"></i>Cobrar y Finalizar
+                <button class="btn btn-success btn-lg w-100 mt-2" onclick="abrirModalCobro()">
+                  <i class="bi bi-cash-coin me-2"></i>Cobrar Ticket
                 </button>
               </div>
             </div>
@@ -225,12 +212,14 @@
                 <h5 class="card-title">Nuevo Producto</h5>
                 <form id="form-inventario" class="row g-3" onsubmit="agregarProducto(event)">
                   <div class="col-md-5">
-                    <input type="text" class="form-control" id="inv-nombre" placeholder="Nombre del pan/producto" required>
+                    <input type="text" class="form-control" id="inv-nombre" placeholder="Nombre del pan/producto"
+                      required>
                   </div>
                   <div class="col-md-3">
                     <div class="input-group">
                       <span class="input-group-text">$</span>
-                      <input type="number" class="form-control" id="inv-precio" placeholder="Precio" step="0.01" required>
+                      <input type="number" class="form-control" id="inv-precio" placeholder="Precio" step="0.01"
+                        required>
                     </div>
                   </div>
                   <div class="col-md-2">
@@ -258,7 +247,7 @@
                     </tr>
                   </thead>
                   <tbody id="tabla-inventario">
-                    </tbody>
+                  </tbody>
                 </table>
               </div>
             </div>
@@ -278,7 +267,8 @@
             <h5 class="card-title">Nueva Promoción</h5>
             <form id="form-promociones" class="row g-3" onsubmit="agregarPromocion(event)">
               <div class="col-md-5">
-                <input type="text" class="form-control" id="promo-nombre" placeholder="Nombre de promoción (ej. 2x1 Conchas)" required>
+                <input type="text" class="form-control" id="promo-nombre"
+                  placeholder="Nombre de promoción (ej. 2x1 Conchas)" required>
               </div>
               <div class="col-md-5">
                 <input type="text" class="form-control" id="promo-desc" placeholder="Descripción detallada" required>
@@ -304,7 +294,7 @@
                 </tr>
               </thead>
               <tbody id="tabla-promociones">
-                </tbody>
+              </tbody>
             </table>
           </div>
         </div>
@@ -338,7 +328,8 @@
                 <input type="text" class="form-control" id="emp-usuario" placeholder="Nombre de usuario login" required>
               </div>
               <div class="col-md-3 mt-2">
-                <input type="password" class="form-control" id="emp-password" placeholder="Contraseña de acceso" required>
+                <input type="password" class="form-control" id="emp-password" placeholder="Contraseña de acceso"
+                  required>
               </div>
               <div class="col-md-2 mt-2">
                 <button type="submit" class="btn btn-primary w-100">
@@ -363,7 +354,7 @@
                 </tr>
               </thead>
               <tbody id="tabla-empleados">
-                </tbody>
+              </tbody>
             </table>
           </div>
         </div>
@@ -416,40 +407,129 @@
           <div class="col-12">
             <div class="card recent-sales overflow-auto">
               <div class="card-body">
-                <h5 class="card-title">Historial de Transacciones</h1>
-                <table class="table table-borderless table-striped datatable-ventas">
-                  <thead>
-                    <tr>
-                      <th scope="col">ID Ticket</th>
-                      <th scope="col">Fecha y Hora</th>
-                      <th scope="col">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tabla-reportes">
+                <h5 class="card-title">Historial de Transacciones</h5>
+                <div class="mb-3">
+                  <input type="text" id="busqueda-reportes" class="form-control" placeholder="Buscar por ID de Venta..." onkeyup="filtrarReportes()">
+                </div>
+                  <table class="table table-borderless table-striped">
+                    <thead>
+                      <tr>
+                        <th scope="col">ID Ticket</th>
+                        <th scope="col">Fecha y Hora</th>
+                        <th scope="col">Total</th>
+                        <th scope="col">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabla-reportes">
                     </tbody>
-                </table>
+                  </table>
               </div>
             </div>
           </div>
         </div>
       </section>
     </div>
-<br>
-<br>
-  </main><footer id="footer" class="footer">
+    <br>
+    <br>
+
+    <!-- Modal Detalles Venta -->
+    <div class="modal fade" id="modal-detalles-venta" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Detalles del Ticket <span id="modal-detalle-id"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <ul class="list-group" id="lista-detalles-venta">
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Corte Caja -->
+    <div class="modal fade" id="modal-corte-caja" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Corte de Caja</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <div class="mb-3">
+              <h6 class="text-muted">Ventas del Día (Turno)</h6>
+              <h3 class="text-success">$<span id="ventas-dia">0.00</span></h3>
+            </div>
+            <div class="mb-3">
+              <h6 class="text-muted">Ventas del Mes (Referencia)</h6>
+              <h4 class="text-info">$<span id="ventas-mes">0.00</span></h4>
+            </div>
+          </div>
+          <div class="modal-footer d-flex justify-content-between">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-success" onclick="imprimirCorteCaja()">Generar e Imprimir Corte</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Cobro -->
+    <div class="modal fade" id="modal-cobro" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title"><i class="bi bi-cash-stack"></i> Procesar Cobro</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <h6 class="fw-bold">Resumen de Productos:</h6>
+            <ul class="list-group mb-3" id="lista-resumen-cobro" style="max-height: 200px; overflow-y: auto;">
+            </ul>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="fs-5 fw-bold">Total a Pagar:</span>
+              <span class="fs-4 fw-bold text-primary">$<span id="cobro-total">0.00</span></span>
+            </div>
+            <div class="mb-3">
+              <label for="cobro-efectivo" class="form-label fw-bold">Efectivo Recibido ($):</label>
+              <input type="number" class="form-control form-control-lg" id="cobro-efectivo" placeholder="0.00" onkeyup="calcularCambio()" onchange="calcularCambio()" min="0">
+            </div>
+            <div class="alert alert-secondary text-center" id="alerta-cambio" role="alert">
+              Ingrese el monto con el que paga el cliente.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Regresar</button>
+            <button type="button" class="btn btn-success" id="btn-confirmar-cobro" onclick="procesarVenta()" disabled>
+              <i class="bi bi-check-circle me-1"></i>Confirmar Pago
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor Oculto para Imprimir Ticket -->
+    <div id="impresion-ticket" style="display: none;"></div>
+
+  </main>
+  <footer id="footer" class="footer">
     <div class="copyright">
       &copy; Copyright 2026 <strong><span>Panes Hermanos</span></strong>. Todos los derechos reservados
     </div>
   </footer>
 
-  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i
+      class="bi bi-arrow-up-short"></i></a>
 
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
- 
+
 
   <script src="assets/js/main.js"></script>
-  
+
 
 </body>
 
