@@ -95,6 +95,14 @@ async function agregarProducto(evento) {
     let precio = parseFloat(document.getElementById('inv-precio').value);
     let stock = parseInt(document.getElementById('inv-stock').value);
 
+    // Validación para evitar productos repetidos en el inventario
+    let nombreLimpio = nombre.trim().toLowerCase();
+    let esDuplicado = inventario.some(p => p.nombre.trim().toLowerCase() === nombreLimpio);
+    if (esDuplicado) {
+        alert("Ya existe un producto con ese nombre en el inventario. No se permiten repetidos.");
+        return;
+    }
+
     let nuevoProductoReq = {
         nombre: nombre,
         precio: precio,
@@ -111,6 +119,9 @@ async function agregarProducto(evento) {
         if(respuesta.ok) {
             document.getElementById('form-inventario').reset();
             await actualizarVistas();
+            alert("Producto agregado correctamente.");
+        } else {
+            alert("Hubo un error al guardar el producto.");
         }
     } catch (e) {
         console.error("Error al crear producto:", e);
@@ -405,6 +416,16 @@ function agregarAlCarrito(idProducto) {
         });
     }
     renderizarCarrito();
+}
+
+function filtrarPanesVenta() {
+    let input = document.getElementById("buscar-pan-venta").value.toLowerCase();
+    let tarjetas = document.querySelectorAll("#contenedor-productos-venta .col-producto");
+    
+    tarjetas.forEach(tarjeta => {
+        let nombrePan = tarjeta.querySelector("strong").innerText.toLowerCase();
+        tarjeta.style.display = nombrePan.includes(input) ? "" : "none";
+    });
 }
 
 function quitarDelCarrito(idProducto) {
