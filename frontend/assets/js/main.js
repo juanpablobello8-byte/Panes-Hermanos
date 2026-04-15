@@ -154,7 +154,7 @@ async function editarProducto(id) {
 function renderizarInventario() {
     let tbody = document.getElementById('tabla-inventario');
     
-    // --- NUEVO: CALCULAR STOCK TOTAL Y ACTUALIZAR TARJETA ---
+    // --- CALCULAR STOCK TOTAL Y ACTUALIZAR TARJETA ---
     let totalStock = 0;
     inventario.forEach(p => totalStock += p.cantidad_en_stock);
     
@@ -189,7 +189,6 @@ function renderizarInventario() {
         elAccion.innerText = accionTexto;
         elAccion.className = `${claseColor} small pt-1 fw-bold`;
     }
-    // -----------------------------------------------------
 
     if(!tbody) return;
     tbody.innerHTML = ''; 
@@ -542,7 +541,7 @@ async function procesarVenta() {
         const ventaGuardada = await respuesta.json();
 
         carrito = [];
-        await actualizarVistas(); // Actualiza el stock general desde el servidor
+        await actualizarVistas();
         renderizarCarrito(); 
         
         let modalElement = document.getElementById('modal-cobro');
@@ -612,12 +611,10 @@ window.addEventListener('load', () => {
         return;
     }
 
-    // Actualiza headers del UI con los datos reales
     document.getElementById('header-user-name').textContent = usuarioActivo;
     document.getElementById('header-user-fullname').textContent = usuarioActivo;
     document.getElementById('header-user-rol').textContent = rolActivo || 'Cajero';
 
-    // Ocultar características de admin si es cajero
     if (rolActivo === 'Cajero') {
         const adminLinks = document.querySelectorAll('.nav-item-admin');
         adminLinks.forEach(el => el.style.display = 'none');
@@ -625,7 +622,6 @@ window.addEventListener('load', () => {
         const formAdmins = document.querySelectorAll('.form-admin-only');
         formAdmins.forEach(el => el.style.display = 'none');
         
-        // Ocultar cabecera de "Acciones" en la tabla de inventario
         const inventarioHeader = document.querySelector('#modulo-inventario table thead tr');
         if(inventarioHeader && inventarioHeader.children.length > 3) {
             inventarioHeader.children[3].style.display = 'none';
@@ -641,7 +637,7 @@ function cerrarSesion() {
 }
 
 /* =========================================
-   MÉTODOS NUEVOS: TICKETS Y CORTES DE CAJA
+   TICKETS Y CORTES DE CAJA
    ========================================= */
 
 function filtrarReportes() {
@@ -650,11 +646,7 @@ function filtrarReportes() {
     
     filas.forEach(fila => {
         let idVenta = fila.querySelector(".id-venta").innerText.toLowerCase();
-        if (idVenta.includes(input)) {
-            fila.style.display = "";
-        } else {
-            fila.style.display = "none";
-        }
+        fila.style.display = idVenta.includes(input) ? "" : "none";
     });
 }
 
@@ -662,7 +654,6 @@ function verDetallesVenta(id) {
     let venta = historialVentas.find(v => v.id === id);
     if (!venta) return;
 
-    // Guardar referencia global para impresión
     ventaActivaModal = venta;
     
     document.getElementById("modal-detalle-id").innerText = `#${venta.id}`;
@@ -672,9 +663,10 @@ function verDetallesVenta(id) {
     let detalles = venta.detalles || [];
     if (venta.detalles_venta) detalles = venta.detalles_venta;
 
-    // --- Encabezado de info de la venta ---
     let empleadoObj = empleados.find(e => e.id === venta.empleado_id);
-    let nombreEmpleado = empleadoObj ? `${empleadoObj.nombre} (${empleadoObj.rol})` : (venta.empleado_id ? `Empleado #${venta.empleado_id}` : 'No registrado');
+    let nombreEmpleado = empleadoObj
+        ? `${empleadoObj.nombre} (${empleadoObj.rol})`
+        : (venta.empleado_id ? `Empleado #${venta.empleado_id}` : 'No registrado');
     let fechaFormato = new Date(venta.fecha_venta).toLocaleString('es-MX', { dateStyle: 'full', timeStyle: 'short' });
 
     lista.innerHTML += `
@@ -700,7 +692,6 @@ function verDetallesVenta(id) {
             `;
         });
 
-        // Total, efectivo y cambio
         lista.innerHTML += `
             <li class="list-group-item d-flex justify-content-between align-items-center fw-bold bg-light mt-2">
                 <span>Total Pagado</span>
@@ -731,116 +722,113 @@ function verDetallesVenta(id) {
     modal.show();
 }
 
+/* =========================================
+   IMPRIMIR TICKET COMO PDF
+   Usa window.print() nativo del navegador.
+   En Chrome/Edge selecciona "Guardar como PDF"
+   en el destino de impresión.
+   ========================================= */
 function imprimirTicketDesdeModal() {
     if (!ventaActivaModal) {
-        alert('No hay ningún ticket abierto para imprimir.');
+        alert('No hay ningun ticket abierto para imprimir.');
         return;
     }
-    const venta = ventaActivaModal;
+    var venta = ventaActivaModal;
+    var detalles = venta.detalles || venta.detalles_venta || [];
 
-    let detalles = venta.detalles || venta.detalles_venta || [];
-    let empleadoObj = empleados.find(e => e.id === venta.empleado_id);
-    let nombreEmpleado = empleadoObj
-        ? `${empleadoObj.nombre} (${empleadoObj.rol})`
-        : (venta.empleado_id ? `Empleado #${venta.empleado_id}` : 'No registrado');
-    let fecha = new Date(venta.fecha_venta).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
-    let hora  = new Date(venta.fecha_venta).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    var empleadoObj = null;
+    for (var i = 0; i < empleados.length; i++) {
+        if (empleados[i].id === venta.empleado_id) { empleadoObj = empleados[i]; break; }
+    }
+    var nombreEmpleado = empleadoObj
+        ? (empleadoObj.nombre + ' (' + empleadoObj.rol + ')')
+        : (venta.empleado_id ? ('Empleado #' + venta.empleado_id) : 'No registrado');
 
-    let filaProductos = '';
-    detalles.forEach(d => {
-        let prod = inventario.find(p => p.id === d.producto_id);
-        let nombreProd = prod ? prod.nombre : `Producto #${d.producto_id}`;
-        filaProductos += `
-            <tr>
-                <td style="text-align:left; padding: 3px 0;">${nombreProd}</td>
-                <td style="text-align:center; padding: 3px 4px;">x${d.cantidad}</td>
-                <td style="text-align:right; padding: 3px 0;">$${d.subtotal.toFixed(2)}</td>
-            </tr>
-        `;
-    });
+    var dFecha = new Date(venta.fecha_venta);
+    var fecha = dFecha.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+    var hora  = dFecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    let efectivoHtml = '';
+    var filasProductos = '';
+    for (var j = 0; j < detalles.length; j++) {
+        var d = detalles[j];
+        var prod = null;
+        for (var k = 0; k < inventario.length; k++) {
+            if (inventario[k].id === d.producto_id) { prod = inventario[k]; break; }
+        }
+        var nombreProd = prod ? prod.nombre : ('Prod #' + d.producto_id);
+        filasProductos += '<tr>'
+            + '<td style="text-align:left;padding:3px 0;">' + nombreProd + '</td>'
+            + '<td style="text-align:center;padding:3px 4px;">x' + d.cantidad + '</td>'
+            + '<td style="text-align:right;padding:3px 0;">$' + d.subtotal.toFixed(2) + '</td>'
+            + '</tr>';
+    }
+
+    var efectivoHtml = '';
     if (venta.efectivo_recibido != null) {
-        efectivoHtml += `<p style="text-align:right; margin:3px 0;">Efectivo recibido: <strong>$${parseFloat(venta.efectivo_recibido).toFixed(2)}</strong></p>`;
+        efectivoHtml += '<p style="text-align:right;margin:3px 0;">Efectivo recibido: <b>$' + parseFloat(venta.efectivo_recibido).toFixed(2) + '</b></p>';
     }
     if (venta.cambio_entregado != null) {
-        efectivoHtml += `<p style="text-align:right; margin:3px 0;">Cambio entregado: <strong>$${parseFloat(venta.cambio_entregado).toFixed(2)}</strong></p>`;
+        efectivoHtml += '<p style="text-align:right;margin:3px 0;">Cambio entregado: <b>$' + parseFloat(venta.cambio_entregado).toFixed(2) + '</b></p>';
     }
 
-    // Contenedor invisible fuera de pantalla (html2pdf requiere que esté en el DOM)
-    const contenedor = document.createElement('div');
-    contenedor.style.cssText = 'position:absolute; left:-9999px; top:0; visibility:hidden;';
-    contenedor.innerHTML = `
-        <div style="font-family: 'Courier New', monospace; font-size: 13px; color: #000; width: 290px; padding: 20px 14px; background: #fff;">
-            <div style="text-align:center; margin-bottom: 8px;">
-                <div style="font-size: 18px; font-weight: bold; letter-spacing: 2px;">PANES HERMANOS</div>
-                <div style="font-size: 11px; margin-top: 2px;">¡El mejor pan de la ciudad!</div>
-            </div>
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-            <p style="margin: 3px 0;"><strong>Ticket #:</strong> ${venta.id}</p>
-            <p style="margin: 3px 0;"><strong>Fecha:</strong> ${fecha}</p>
-            <p style="margin: 3px 0;"><strong>Hora:</strong> ${hora}</p>
-            <p style="margin: 3px 0;"><strong>Atendió:</strong> ${nombreEmpleado}</p>
-            <p style="margin: 3px 0;"><strong>Método de pago:</strong> ${venta.metodo_pago || 'Efectivo'}</p>
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-            <table style="width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 12px;">
-                <thead>
-                    <tr style="border-bottom: 1px solid #000;">
-                        <th style="text-align:left; padding-bottom: 4px;">Producto</th>
-                        <th style="text-align:center; padding-bottom: 4px;">Cant.</th>
-                        <th style="text-align:right; padding-bottom: 4px;">Subtotal</th>
-                    </tr>
-                </thead>
-                <tbody>${filaProductos}</tbody>
-            </table>
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-            <p style="text-align:right; font-weight:bold; font-size:14px; margin: 4px 0;">TOTAL: $${venta.total.toFixed(2)}</p>
-            ${efectivoHtml}
-            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
-            <div style="text-align:center; font-size:11px; margin-top:10px;">
-                <p>¡Gracias por su compra!</p>
-                <p>Vuelva pronto :-)</p>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(contenedor);
+    var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+        + '<title>Ticket #' + venta.id + ' - Panes Hermanos</title>'
+        + '<style>'
+        + 'body{font-family:"Courier New",Courier,monospace;font-size:13px;color:#000;background:#fff;margin:0;padding:0;}'
+        + '.ticket{width:290px;margin:0 auto;padding:16px 12px;}'
+        + '.center{text-align:center;}'
+        + 'hr{border:none;border-top:1px dashed #000;margin:8px 0;}'
+        + 'table{width:100%;border-collapse:collapse;margin:6px 0;}'
+        + 'th{font-size:11px;border-bottom:1px solid #000;padding-bottom:4px;}'
+        + 'p{margin:3px 0;}'
+        + '@media print{'
+        + '  @page{size:80mm auto;margin:4mm;}'
+        + '  body{width:80mm;}'
+        + '}'
+        + '</style></head><body>'
+        + '<div class="ticket">'
+        + '<div class="center">'
+        + '<div style="font-size:18px;font-weight:bold;letter-spacing:2px;">PANES HERMANOS</div>'
+        + '<div style="font-size:11px;margin-top:2px;">El mejor pan de la ciudad</div>'
+        + '</div>'
+        + '<hr>'
+        + '<p><b>Ticket #:</b> ' + venta.id + '</p>'
+        + '<p><b>Fecha:</b> ' + fecha + '</p>'
+        + '<p><b>Hora:</b> ' + hora + '</p>'
+        + '<p><b>Atendio:</b> ' + nombreEmpleado + '</p>'
+        + '<p><b>Metodo de pago:</b> ' + (venta.metodo_pago || 'Efectivo') + '</p>'
+        + '<hr>'
+        + '<table><thead><tr>'
+        + '<th style="text-align:left;">Producto</th>'
+        + '<th style="text-align:center;">Cant.</th>'
+        + '<th style="text-align:right;">Subtotal</th>'
+        + '</tr></thead><tbody>' + filasProductos + '</tbody></table>'
+        + '<hr>'
+        + '<p style="text-align:right;font-weight:bold;font-size:15px;">TOTAL: $' + venta.total.toFixed(2) + '</p>'
+        + efectivoHtml
+        + '<hr>'
+        + '<div class="center" style="font-size:11px;margin-top:10px;">'
+        + '<p>Gracias por su compra!</p>'
+        + '<p>Vuelva pronto</p>'
+        + '</div></div>'
+        + '<script>window.onload=function(){window.print();}<\/script>'
+        + '</body></html>';
 
-    // Verificar que html2pdf esté disponible
-    if (typeof html2pdf === 'undefined') {
-        document.body.removeChild(contenedor);
-        alert('Error: la librería de PDF no está cargada. Verifica tu conexión a internet y recarga la página.');
+    var win = window.open('', '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no');
+    if (!win) {
+        alert('El navegador bloqueo la ventana emergente.\nPor favor permite ventanas emergentes para localhost:3000 y vuelve a intentarlo.');
         return;
     }
-
-    const opciones = {
-        margin:      [4, 4, 4, 4],
-        filename:    `Ticket_${venta.id}_PanesHermanos.pdf`,
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF:       { unit: 'mm', format: [80, 200], orientation: 'portrait' }
-    };
-
-    html2pdf()
-        .set(opciones)
-        .from(contenedor)
-        .save()
-        .then(() => {
-            document.body.removeChild(contenedor);
-        })
-        .catch(err => {
-            console.error('Error generando PDF:', err);
-            document.body.removeChild(contenedor);
-            alert('Hubo un error al generar el PDF. Revisa la consola para más detalles.');
-        });
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
 }
 
 async function abrirModalCorteCaja() {
-    // Mostrar la fecha de hoy
     const ahora = new Date();
     const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('corte-fecha-hoy').innerText = ahora.toLocaleDateString('es-MX', opciones);
 
-    // Cargar datos frescos del servidor
     try {
         const resDia = await fetch(`${API_REPORTES}/ventas/dia`);
         if (resDia.ok) {
@@ -926,11 +914,11 @@ async function imprimirTicket(ventaId, efectivo = null, cambio = null) {
         let ticketHtml = `
             <div style="font-family: monospace; width: 300px; margin: 0 auto; text-align: center; padding: 20px; font-size: 14px;">
                 <h2 style="margin: 0;">PANES HERMANOS</h2>
-                <p style="margin: 5px 0;">¡El mejor pan de la ciudad!</p>
+                <p style="margin: 5px 0;">El mejor pan de la ciudad</p>
                 <p>===================================</p>
                 <p style="text-align: left; margin: 2px 0;">Ticket: #${venta.id}</p>
                 <p style="text-align: left; margin: 2px 0;">Fecha: ${fecha}</p>
-                <p style="text-align: left; margin: 2px 0;">Atendió: ${document.getElementById('header-user-name').textContent}</p>
+                <p style="text-align: left; margin: 2px 0;">Atendio: ${document.getElementById('header-user-name').textContent}</p>
                 <p>===================================</p>
                 <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
                     ${detallesPlantilla}
@@ -939,7 +927,7 @@ async function imprimirTicket(ventaId, efectivo = null, cambio = null) {
                 <h3 style="text-align: right; margin: 5px 0;">TOTAL: $${venta.total.toFixed(2)}</h3>
                 ${seccionCambio}
                 <p>===================================</p>
-                <p>¡Gracias por su compra!</p>
+                <p>Gracias por su compra!</p>
             </div>
         `;
         
