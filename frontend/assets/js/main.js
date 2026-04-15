@@ -16,6 +16,7 @@ let empleados = [];
 let promociones = [];
 let carrito = [];
 let historialVentas = [];
+let ventaActivaModal = null; // Venta actualmente abierta en el modal de detalles
 
 /* =========================================
    NAVEGACIÓN Y UI
@@ -58,14 +59,14 @@ async function actualizarVistas() {
 
 async function renderizarVentasStats() {
     try {
-        const resDia = await fetch(`${API_REPORTES}/reportes/ventas/dia`);
+        const resDia = await fetch(`${API_REPORTES}/ventas/dia`);
         if (resDia.ok) {
             const dataDia = await resDia.json();
             const elDia = document.getElementById('ventas-dia');
             if (elDia) elDia.innerText = dataDia.total_ingresos.toFixed(2);
         }
 
-        const resMes = await fetch(`${API_REPORTES}/reportes/ventas/mes`);
+        const resMes = await fetch(`${API_REPORTES}/ventas/mes`);
         if (resMes.ok) {
             const dataMes = await resMes.json();
             const elMes = document.getElementById('ventas-mes');
@@ -567,7 +568,7 @@ async function renderizarReportes() {
     if(!tbody || !totalDineroCont || !totalVentasCont) return;
 
     try {
-        const respuestaReportes = await fetch(`${API_REPORTES}/reportes/ventas/resumen`);
+        const respuestaReportes = await fetch(`${API_REPORTES}/ventas/resumen`);
         if (respuestaReportes.ok) {
             const resumen = await respuestaReportes.json();
             totalDineroCont.innerText = resumen.total_ingresos ? resumen.total_ingresos.toFixed(2) : "0.00";
@@ -660,6 +661,9 @@ function filtrarReportes() {
 function verDetallesVenta(id) {
     let venta = historialVentas.find(v => v.id === id);
     if (!venta) return;
+
+    // Guardar referencia global para impresión
+    ventaActivaModal = venta;
     
     document.getElementById("modal-detalle-id").innerText = `#${venta.id}`;
     let lista = document.getElementById("lista-detalles-venta");
@@ -667,26 +671,58 @@ function verDetallesVenta(id) {
     
     let detalles = venta.detalles || [];
     if (venta.detalles_venta) detalles = venta.detalles_venta;
+
+    // --- Encabezado de info de la venta ---
+    let empleadoObj = empleados.find(e => e.id === venta.empleado_id);
+    let nombreEmpleado = empleadoObj ? `${empleadoObj.nombre} (${empleadoObj.rol})` : (venta.empleado_id ? `Empleado #${venta.empleado_id}` : 'No registrado');
+    let fechaFormato = new Date(venta.fecha_venta).toLocaleString('es-MX', { dateStyle: 'full', timeStyle: 'short' });
+
+    lista.innerHTML += `
+        <li class="list-group-item bg-light">
+            <div class="row text-muted small">
+                <div class="col-6"><i class="bi bi-person-badge me-1"></i><strong>Atendió:</strong><br>${nombreEmpleado}</div>
+                <div class="col-6"><i class="bi bi-calendar-event me-1"></i><strong>Fecha:</strong><br>${fechaFormato}</div>
+            </div>
+        </li>
+    `;
     
     if (detalles.length === 0) {
-        lista.innerHTML = "<li class='list-group-item text-center text-muted'>Sin detalles registrados.</li>";
+        lista.innerHTML += "<li class='list-group-item text-center text-muted'>Sin detalles registrados.</li>";
     } else {
         detalles.forEach(d => {
             let prod = inventario.find(p => p.id === d.producto_id);
             let nombreProd = prod ? prod.nombre : `Producto ID ${d.producto_id}`;
             lista.innerHTML += `
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                    ${nombreProd} <span class="badge bg-secondary rounded-pill">x${d.cantidad}</span>
-                    <span>$${d.subtotal.toFixed(2)}</span>
+                    <span>${nombreProd} <span class="badge bg-secondary rounded-pill">x${d.cantidad}</span></span>
+                    <span class="fw-bold">$${d.subtotal.toFixed(2)}</span>
                 </li>
             `;
         });
+
+        // Total, efectivo y cambio
         lista.innerHTML += `
             <li class="list-group-item d-flex justify-content-between align-items-center fw-bold bg-light mt-2">
-                Total Pagado
-                <span class="text-success">$${venta.total.toFixed(2)}</span>
+                <span>Total Pagado</span>
+                <span class="text-success fs-6">$${venta.total.toFixed(2)}</span>
             </li>
         `;
+        if (venta.efectivo_recibido != null) {
+            lista.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted"><i class="bi bi-cash me-1"></i>Efectivo recibido</span>
+                    <span>$${parseFloat(venta.efectivo_recibido).toFixed(2)}</span>
+                </li>
+            `;
+        }
+        if (venta.cambio_entregado != null) {
+            lista.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-muted"><i class="bi bi-arrow-return-left me-1"></i>Cambio entregado</span>
+                    <span class="text-primary fw-bold">$${parseFloat(venta.cambio_entregado).toFixed(2)}</span>
+                </li>
+            `;
+        }
     }
     
     let modalElement = document.getElementById('modal-detalles-venta');
@@ -695,7 +731,132 @@ function verDetallesVenta(id) {
     modal.show();
 }
 
-function abrirModalCorteCaja() {
+function imprimirTicketDesdeModal() {
+    if (!ventaActivaModal) {
+        alert('No hay ningún ticket abierto para imprimir.');
+        return;
+    }
+    const venta = ventaActivaModal;
+
+    let detalles = venta.detalles || venta.detalles_venta || [];
+    let empleadoObj = empleados.find(e => e.id === venta.empleado_id);
+    let nombreEmpleado = empleadoObj
+        ? `${empleadoObj.nombre} (${empleadoObj.rol})`
+        : (venta.empleado_id ? `Empleado #${venta.empleado_id}` : 'No registrado');
+    let fecha = new Date(venta.fecha_venta).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+    let hora  = new Date(venta.fecha_venta).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    let filaProductos = '';
+    detalles.forEach(d => {
+        let prod = inventario.find(p => p.id === d.producto_id);
+        let nombreProd = prod ? prod.nombre : `Producto #${d.producto_id}`;
+        filaProductos += `
+            <tr>
+                <td style="text-align:left; padding: 3px 0;">${nombreProd}</td>
+                <td style="text-align:center; padding: 3px 4px;">x${d.cantidad}</td>
+                <td style="text-align:right; padding: 3px 0;">$${d.subtotal.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    let efectivoHtml = '';
+    if (venta.efectivo_recibido != null) {
+        efectivoHtml += `<p style="text-align:right; margin:3px 0;">Efectivo recibido: <strong>$${parseFloat(venta.efectivo_recibido).toFixed(2)}</strong></p>`;
+    }
+    if (venta.cambio_entregado != null) {
+        efectivoHtml += `<p style="text-align:right; margin:3px 0;">Cambio entregado: <strong>$${parseFloat(venta.cambio_entregado).toFixed(2)}</strong></p>`;
+    }
+
+    // Contenedor invisible fuera de pantalla (html2pdf requiere que esté en el DOM)
+    const contenedor = document.createElement('div');
+    contenedor.style.cssText = 'position:absolute; left:-9999px; top:0; visibility:hidden;';
+    contenedor.innerHTML = `
+        <div style="font-family: 'Courier New', monospace; font-size: 13px; color: #000; width: 290px; padding: 20px 14px; background: #fff;">
+            <div style="text-align:center; margin-bottom: 8px;">
+                <div style="font-size: 18px; font-weight: bold; letter-spacing: 2px;">PANES HERMANOS</div>
+                <div style="font-size: 11px; margin-top: 2px;">¡El mejor pan de la ciudad!</div>
+            </div>
+            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <p style="margin: 3px 0;"><strong>Ticket #:</strong> ${venta.id}</p>
+            <p style="margin: 3px 0;"><strong>Fecha:</strong> ${fecha}</p>
+            <p style="margin: 3px 0;"><strong>Hora:</strong> ${hora}</p>
+            <p style="margin: 3px 0;"><strong>Atendió:</strong> ${nombreEmpleado}</p>
+            <p style="margin: 3px 0;"><strong>Método de pago:</strong> ${venta.metodo_pago || 'Efectivo'}</p>
+            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <table style="width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 12px;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #000;">
+                        <th style="text-align:left; padding-bottom: 4px;">Producto</th>
+                        <th style="text-align:center; padding-bottom: 4px;">Cant.</th>
+                        <th style="text-align:right; padding-bottom: 4px;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>${filaProductos}</tbody>
+            </table>
+            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <p style="text-align:right; font-weight:bold; font-size:14px; margin: 4px 0;">TOTAL: $${venta.total.toFixed(2)}</p>
+            ${efectivoHtml}
+            <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+            <div style="text-align:center; font-size:11px; margin-top:10px;">
+                <p>¡Gracias por su compra!</p>
+                <p>Vuelva pronto :-)</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(contenedor);
+
+    // Verificar que html2pdf esté disponible
+    if (typeof html2pdf === 'undefined') {
+        document.body.removeChild(contenedor);
+        alert('Error: la librería de PDF no está cargada. Verifica tu conexión a internet y recarga la página.');
+        return;
+    }
+
+    const opciones = {
+        margin:      [4, 4, 4, 4],
+        filename:    `Ticket_${venta.id}_PanesHermanos.pdf`,
+        image:       { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF:       { unit: 'mm', format: [80, 200], orientation: 'portrait' }
+    };
+
+    html2pdf()
+        .set(opciones)
+        .from(contenedor)
+        .save()
+        .then(() => {
+            document.body.removeChild(contenedor);
+        })
+        .catch(err => {
+            console.error('Error generando PDF:', err);
+            document.body.removeChild(contenedor);
+            alert('Hubo un error al generar el PDF. Revisa la consola para más detalles.');
+        });
+}
+
+async function abrirModalCorteCaja() {
+    // Mostrar la fecha de hoy
+    const ahora = new Date();
+    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('corte-fecha-hoy').innerText = ahora.toLocaleDateString('es-MX', opciones);
+
+    // Cargar datos frescos del servidor
+    try {
+        const resDia = await fetch(`${API_REPORTES}/ventas/dia`);
+        if (resDia.ok) {
+            const dataDia = await resDia.json();
+            document.getElementById('ventas-dia').innerText = (dataDia.total_ingresos || 0).toFixed(2);
+            document.getElementById('corte-tickets-dia').innerText = dataDia.ventas_hoy || 0;
+        }
+        const resMes = await fetch(`${API_REPORTES}/ventas/mes`);
+        if (resMes.ok) {
+            const dataMes = await resMes.json();
+            document.getElementById('ventas-mes').innerText = (dataMes.total_ingresos || 0).toFixed(2);
+        }
+    } catch (e) {
+        console.error('Error cargando datos de corte de caja:', e);
+    }
+
     let modalElement = document.getElementById('modal-corte-caja');
     let modal = bootstrap.Modal.getInstance(modalElement);
     if (!modal) modal = new bootstrap.Modal(modalElement);

@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/reportes/guardados", tags=["Reportes Guardados"])
+@app.get("/guardados", tags=["Reportes Guardados"])
 def obtener_reportes_guardados(tipo: Optional[str] = None):
     """
     Obtiene todos los reportes estáticos generados automáticamente (ej. Ventas cruzadas, pedidos de material) 
@@ -32,7 +32,7 @@ def obtener_reportes_guardados(tipo: Optional[str] = None):
     response = consulta.execute()
     return response.data
 
-@app.get("/reportes/guardados/{reporte_id}", tags=["Reportes Guardados"])
+@app.get("/guardados/{reporte_id}", tags=["Reportes Guardados"])
 def obtener_reporte_guardado(reporte_id: int):
     """Recupera el contenido de un reporte guardado por su ID."""
     response = supabase.table('reportes').select('*').eq('id', reporte_id).execute()
@@ -41,7 +41,7 @@ def obtener_reporte_guardado(reporte_id: int):
     return response.data[0]
 
 
-@app.get("/reportes/ventas/resumen", tags=["Reportes de Ventas"])
+@app.get("/ventas/resumen", tags=["Reportes de Ventas"])
 def resumen_ventas_general():
     """Genera un reporte del total histórico de ventas e ingresos."""
     response = supabase.table('ventas').select('total').execute()
@@ -56,9 +56,9 @@ def resumen_ventas_general():
         "promedio_por_venta": total_ingresos / total_transacciones if total_transacciones > 0 else 0
     }
 
-@app.get("/reportes/ventas/dia", tags=["Reportes de Ventas"])
+@app.get("/ventas/dia", tags=["Reportes de Ventas"])
 def resumen_ventas_dia():
-    """Calcula las ventas y total de ingresos del día actual."""
+    """Calcula las ventas y total de ingresos del día actual (en hora local del servidor)."""
     response = supabase.table('ventas').select('total, fecha_venta').execute()
     ventas = response.data
     
@@ -66,7 +66,8 @@ def resumen_ventas_dia():
     ventas_hoy = []
     for v in ventas:
         try:
-            fecha = datetime.fromisoformat(v['fecha_venta'].replace('Z', '+00:00')).date()
+            # Convertir UTC → hora local antes de comparar la fecha
+            fecha = datetime.fromisoformat(v['fecha_venta'].replace('Z', '+00:00')).astimezone().date()
             if fecha == hoy:
                 ventas_hoy.append(v)
         except Exception:
@@ -78,9 +79,9 @@ def resumen_ventas_dia():
         "total_ingresos": total_ingresos
     }
 
-@app.get("/reportes/ventas/mes", tags=["Reportes de Ventas"])
+@app.get("/ventas/mes", tags=["Reportes de Ventas"])
 def resumen_ventas_mes():
-    """Calcula las ventas y total de ingresos del mes actual."""
+    """Calcula las ventas y total de ingresos del mes actual (en hora local del servidor)."""
     response = supabase.table('ventas').select('total, fecha_venta').execute()
     ventas = response.data
     
@@ -88,7 +89,8 @@ def resumen_ventas_mes():
     ventas_mes = []
     for v in ventas:
         try:
-            fecha = datetime.fromisoformat(v['fecha_venta'].replace('Z', '+00:00'))
+            # Convertir UTC → hora local antes de comparar mes/año
+            fecha = datetime.fromisoformat(v['fecha_venta'].replace('Z', '+00:00')).astimezone()
             if fecha.year == hoy.year and fecha.month == hoy.month:
                 ventas_mes.append(v)
         except Exception:
@@ -100,7 +102,7 @@ def resumen_ventas_mes():
         "total_ingresos": total_ingresos
     }
 
-@app.get("/reportes/productos/mas_vendidos", tags=["Reportes de Análisis"])
+@app.get("/productos/mas_vendidos", tags=["Reportes de Análisis"])
 def productos_mas_vendidos():
     """Calcula y devuelve los productos que más se han vendido históricamente."""
     # Obtenemos todos los detalles de venta
@@ -135,7 +137,7 @@ def productos_mas_vendidos():
     reporte = sorted(reporte, key=lambda x: x['cantidad_total_vendida'], reverse=True)
     return reporte
 
-@app.get("/reportes/clientes/actividad", tags=["Reportes de Clientes"])
+@app.get("/clientes/actividad", tags=["Reportes de Clientes"])
 def actividad_clientes():
     """
     (Módulo en preparación). 

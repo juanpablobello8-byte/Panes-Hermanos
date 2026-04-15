@@ -7,7 +7,7 @@ from core.database import supabase
 
 # ------ Esquemas Pydantic ------
 class DetalleVentaBase(BaseModel):
-    producto_id: int
+    producto_id: Optional[int] = None
     cantidad: int
     precio_unitario: float
 

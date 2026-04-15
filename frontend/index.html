@@ -444,8 +444,11 @@
             <ul class="list-group" id="lista-detalles-venta">
             </ul>
           </div>
-          <div class="modal-footer">
+          <div class="modal-footer d-flex justify-content-between">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <button type="button" class="btn btn-primary" onclick="imprimirTicketDesdeModal()">
+              <i class="bi bi-printer me-1"></i> Imprimir Ticket
+            </button>
           </div>
         </div>
       </div>
@@ -460,12 +463,19 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body text-center">
+            <p class="text-muted mb-3"><i class="bi bi-calendar-event me-1"></i><span id="corte-fecha-hoy"></span></p>
+            <hr>
             <div class="mb-3">
-              <h6 class="text-muted">Ventas del Día (Turno)</h6>
-              <h3 class="text-success">$<span id="ventas-dia">0.00</span></h3>
+              <h6 class="text-muted">Tickets Vendidos Hoy</h6>
+              <h4 class="text-dark"><span id="corte-tickets-dia">0</span> <small class="text-muted fs-6">tickets</small></h4>
             </div>
             <div class="mb-3">
-              <h6 class="text-muted">Ventas del Mes (Referencia)</h6>
+              <h6 class="text-muted">Total del Día (Turno)</h6>
+              <h3 class="text-success fw-bold">$<span id="ventas-dia">0.00</span></h3>
+            </div>
+            <hr>
+            <div class="mb-2">
+              <h6 class="text-muted">Total del Mes (Referencia)</h6>
               <h4 class="text-info">$<span id="ventas-mes">0.00</span></h4>
             </div>
           </div>
@@ -525,9 +535,7 @@
       class="bi bi-arrow-up-short"></i></a>
 
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-
-
-
+  <script src="assets/vendor/html2pdf.bundle.min.js"></script>
   <script src="assets/js/main.js"></script>
 
 
