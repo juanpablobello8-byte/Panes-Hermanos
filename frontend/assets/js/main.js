@@ -1116,7 +1116,13 @@ function renderizarCantidades(selectId, containerId) {
     container.innerHTML = '';
     if(seleccionados.length > 0) {
         let html = '<div class="row g-2 mt-1 pt-2 border-top">';
-        html += '<div class="col-12"><small class="text-muted fw-bold">Especifica la cantidad necesaria de cada insumo para una sola receta:</small></div>';
+        let textoInstruccion = "Especifica la cantidad:";
+        if (selectId === 'rec-ingredientes') textoInstruccion = "Especifica la cantidad de cada insumo para una sola receta:";
+        if (selectId === 'ord-pan') textoInstruccion = "Especifica la cantidad a hornear de cada pan:";
+        if (selectId === 'mer-pan') textoInstruccion = "Especifica la cantidad de mermas de cada pan:";
+        if (selectId === 'ped-pan') textoInstruccion = "Especifica la cantidad solicitada de cada pan:";
+        
+        html += `<div class="col-12"><small class="text-muted fw-bold">${textoInstruccion}</small></div>`;
         seleccionados.forEach(opt => {
             const val = valoresPrevios[opt.value] || '1';
             const un = unidadesPrevias[opt.value] || 'x';
@@ -1166,6 +1172,7 @@ function popularSelectsDeInsumos() {
     
     if(recChoices) recChoices.destroy();
     recIngredientes.innerHTML = optionsMulti;
+    recIngredientes.setAttribute('multiple', 'multiple');
     recChoices = new Choices(recIngredientes, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
     recIngredientes.onchange = () => renderizarCantidades('rec-ingredientes', 'rec-cantidades-container');
     renderizarCantidades('rec-ingredientes', 'rec-cantidades-container');
@@ -1182,6 +1189,7 @@ function popularSelectsDeRecetas() {
     
     if(ordChoices) ordChoices.destroy();
     ordPan.innerHTML = optionsMulti;
+    ordPan.setAttribute('multiple', 'multiple');
     ordChoices = new Choices(ordPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
     ordPan.onchange = () => renderizarCantidades('ord-pan', 'ord-cantidades-container');
     renderizarCantidades('ord-pan', 'ord-cantidades-container');
@@ -1206,6 +1214,7 @@ function popularSelectsDelInventario() {
     if(pedPan) { 
         if(pedChoices) pedChoices.destroy(); 
         pedPan.innerHTML = optionsMulti; 
+        pedPan.setAttribute('multiple', 'multiple');
         pedChoices = new Choices(pedPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
         pedPan.onchange = () => renderizarCantidades('ped-pan', 'ped-cantidades-container');
         renderizarCantidades('ped-pan', 'ped-cantidades-container');
@@ -1213,6 +1222,7 @@ function popularSelectsDelInventario() {
     if(merPan) { 
         if(merChoices) merChoices.destroy(); 
         merPan.innerHTML = optionsMulti; 
+        merPan.setAttribute('multiple', 'multiple');
         merChoices = new Choices(merPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
         merPan.onchange = () => renderizarCantidades('mer-pan', 'mer-cantidades-container');
         renderizarCantidades('mer-pan', 'mer-cantidades-container');
