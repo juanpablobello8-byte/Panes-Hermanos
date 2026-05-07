@@ -1127,9 +1127,10 @@ function renderizarCantidades(selectId, containerId) {
             const val = valoresPrevios[opt.value] || '1';
             const un = unidadesPrevias[opt.value] || 'x';
             
-            // Selector de unidad opcional si es receta
+            let inputAttr = 'min="1" step="1"';
             let selectUnidadHtml = '';
             if (selectId === 'rec-ingredientes') {
+                inputAttr = 'min="0.01" step="0.01"';
                 selectUnidadHtml = `
                     <select class="form-select form-select-sm uni-dinamica" id="uni-${selectId}-${opt.value}" data-id="${opt.value}" style="max-width: 80px;">
                         <option value="x" ${un === 'x' ? 'selected' : ''}>Disp.</option>
@@ -1142,12 +1143,14 @@ function renderizarCantidades(selectId, containerId) {
                 `;
             }
             
+            // Para mermas, el min puede ser 1 (o 0 si se prefiere)
+            
             html += `
                 <div class="col-md-3 col-sm-4 col-6">
                     <label class="form-label small mb-0 text-truncate w-100" title="${opt.getAttribute('data-nombre')}">${opt.getAttribute('data-nombre')}</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text">#</span>
-                        <input type="number" class="form-control cant-dinamica" id="cant-${selectId}-${opt.value}" data-id="${opt.value}" value="${val}" min="0.01" step="0.01" required>
+                        <input type="number" class="form-control cant-dinamica" id="cant-${selectId}-${opt.value}" data-id="${opt.value}" value="${val}" ${inputAttr} required>
                         ${selectUnidadHtml}
                     </div>
                 </div>
