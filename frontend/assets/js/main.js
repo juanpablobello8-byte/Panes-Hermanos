@@ -1164,8 +1164,8 @@ function popularSelectsDeInsumos() {
         optionsMulti += `<option value="${ins.id}" data-nombre="${ins.nombre}">${ins.nombre} (Disp: ${ins.cantidad})</option>`;
     });
     
-    recIngredientes.innerHTML = optionsMulti;
     if(recChoices) recChoices.destroy();
+    recIngredientes.innerHTML = optionsMulti;
     recChoices = new Choices(recIngredientes, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
     recIngredientes.onchange = () => renderizarCantidades('rec-ingredientes', 'rec-cantidades-container');
     renderizarCantidades('rec-ingredientes', 'rec-cantidades-container');
@@ -1180,8 +1180,8 @@ function popularSelectsDeRecetas() {
         optionsMulti += `<option value="${rec.id}" data-nombre="${rec.nombre}">${rec.nombre}</option>`;
     });
     
-    ordPan.innerHTML = optionsMulti;
     if(ordChoices) ordChoices.destroy();
+    ordPan.innerHTML = optionsMulti;
     ordChoices = new Choices(ordPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
     ordPan.onchange = () => renderizarCantidades('ord-pan', 'ord-cantidades-container');
     renderizarCantidades('ord-pan', 'ord-cantidades-container');
@@ -1204,15 +1204,15 @@ function popularSelectsDelInventario() {
     });
 
     if(pedPan) { 
-        pedPan.innerHTML = optionsMulti; 
         if(pedChoices) pedChoices.destroy(); 
+        pedPan.innerHTML = optionsMulti; 
         pedChoices = new Choices(pedPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
         pedPan.onchange = () => renderizarCantidades('ped-pan', 'ped-cantidades-container');
         renderizarCantidades('ped-pan', 'ped-cantidades-container');
     }
     if(merPan) { 
-        merPan.innerHTML = optionsMulti; 
         if(merChoices) merChoices.destroy(); 
+        merPan.innerHTML = optionsMulti; 
         merChoices = new Choices(merPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
         merPan.onchange = () => renderizarCantidades('mer-pan', 'mer-cantidades-container');
         renderizarCantidades('mer-pan', 'mer-cantidades-container');

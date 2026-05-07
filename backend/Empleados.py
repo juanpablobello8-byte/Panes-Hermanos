@@ -59,7 +59,8 @@ def eliminar_empleado(empleado_id: int):
         
     empleado = empleados[0]
     # Protegemos al administrador general
-    if empleado.get('usuario') == 'admin':
+    usuario_db = empleado.get('usuario', '')
+    if usuario_db and usuario_db.strip().lower() == 'admin':
         raise HTTPException(status_code=403, detail="El Administrador General no puede ser borrado por seguridad.")
         
     supabase.table('empleados').delete().eq('id', empleado_id).execute()
