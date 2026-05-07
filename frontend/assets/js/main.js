@@ -1165,16 +1165,23 @@ function popularSelectsDeInsumos() {
     const recIngredientes = document.getElementById('rec-ingredientes');
     if(!recIngredientes) return;
     
-    let optionsMulti = '<option value="">Buscar y seleccionar insumo(s)...</option>';
-    insumos.forEach(ins => {
-        optionsMulti += `<option value="${ins.id}" data-nombre="${ins.nombre}">${ins.nombre} (Disp: ${ins.cantidad})</option>`;
-    });
+    const choicesData = insumos.map(ins => ({
+        value: ins.id.toString(), 
+        label: `${ins.nombre} (Disp: ${ins.cantidad})`, 
+        customProperties: { nombre: ins.nombre }
+    }));
     
-    if(recChoices) recChoices.destroy();
-    recIngredientes.innerHTML = optionsMulti;
-    recIngredientes.setAttribute('multiple', 'multiple');
-    recChoices = new Choices(recIngredientes, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
-    recIngredientes.onchange = () => renderizarCantidades('rec-ingredientes', 'rec-cantidades-container');
+    if(recChoices) {
+        recChoices.clearChoices();
+        recChoices.setChoices(choicesData, 'value', 'label', true);
+    } else {
+        let optionsMulti = '<option value="">Buscar y seleccionar insumo(s)...</option>';
+        insumos.forEach(ins => { optionsMulti += `<option value="${ins.id}" data-nombre="${ins.nombre}">${ins.nombre} (Disp: ${ins.cantidad})</option>`; });
+        recIngredientes.innerHTML = optionsMulti;
+        recIngredientes.setAttribute('multiple', 'multiple');
+        recChoices = new Choices(recIngredientes, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
+        recIngredientes.onchange = () => renderizarCantidades('rec-ingredientes', 'rec-cantidades-container');
+    }
     renderizarCantidades('rec-ingredientes', 'rec-cantidades-container');
 }
 
@@ -1182,16 +1189,23 @@ function popularSelectsDeRecetas() {
     const ordPan = document.getElementById('ord-pan');
     if(!ordPan) return;
     
-    let optionsMulti = '<option value="">Buscar y seleccionar receta(s)...</option>';
-    recetas.forEach(rec => {
-        optionsMulti += `<option value="${rec.id}" data-nombre="${rec.nombre}">${rec.nombre}</option>`;
-    });
+    const choicesData = recetas.map(rec => ({
+        value: rec.id.toString(), 
+        label: rec.nombre, 
+        customProperties: { nombre: rec.nombre }
+    }));
     
-    if(ordChoices) ordChoices.destroy();
-    ordPan.innerHTML = optionsMulti;
-    ordPan.setAttribute('multiple', 'multiple');
-    ordChoices = new Choices(ordPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
-    ordPan.onchange = () => renderizarCantidades('ord-pan', 'ord-cantidades-container');
+    if(ordChoices) {
+        ordChoices.clearChoices();
+        ordChoices.setChoices(choicesData, 'value', 'label', true);
+    } else {
+        let optionsMulti = '<option value="">Buscar y seleccionar receta(s)...</option>';
+        recetas.forEach(rec => { optionsMulti += `<option value="${rec.id}" data-nombre="${rec.nombre}">${rec.nombre}</option>`; });
+        ordPan.innerHTML = optionsMulti;
+        ordPan.setAttribute('multiple', 'multiple');
+        ordChoices = new Choices(ordPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
+        ordPan.onchange = () => renderizarCantidades('ord-pan', 'ord-cantidades-container');
+    }
     renderizarCantidades('ord-pan', 'ord-cantidades-container');
 }
 
@@ -1201,34 +1215,51 @@ function popularSelectsDelInventario() {
     const promoPan = document.getElementById('promo-pan');
     const recNombre = document.getElementById('rec-nombre');
     
-    let optionsMulti = '<option value="">Buscar y seleccionar producto(s)...</option>';
-    let optionPromo = '<option value="" selected>Aplica a todo el carrito</option>';
-    let optionReceta = '<option value="" disabled selected>Selecciona un pan del inventario</option>';
+    const choicesData = inventario.map(p => ({
+        value: p.id.toString(), 
+        label: p.nombre, 
+        customProperties: { nombre: p.nombre, precio: p.precio }
+    }));
     
-    inventario.forEach(p => {
-        optionsMulti += `<option value="${p.id}" data-precio="${p.precio}" data-nombre="${p.nombre}">${p.nombre}</option>`;
-        optionPromo += `<option value="${p.id}" data-precio="${p.precio}" data-nombre="${p.nombre}">Solo a: ${p.nombre}</option>`;
-        optionReceta += `<option value="${p.nombre}">${p.nombre}</option>`;
-    });
-
     if(pedPan) { 
-        if(pedChoices) pedChoices.destroy(); 
-        pedPan.innerHTML = optionsMulti; 
-        pedPan.setAttribute('multiple', 'multiple');
-        pedChoices = new Choices(pedPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
-        pedPan.onchange = () => renderizarCantidades('ped-pan', 'ped-cantidades-container');
+        if(pedChoices) {
+            pedChoices.clearChoices();
+            pedChoices.setChoices(choicesData, 'value', 'label', true);
+        } else {
+            let optionsMulti = '<option value="">Buscar y seleccionar producto(s)...</option>';
+            inventario.forEach(p => { optionsMulti += `<option value="${p.id}" data-precio="${p.precio}" data-nombre="${p.nombre}">${p.nombre}</option>`; });
+            pedPan.innerHTML = optionsMulti; 
+            pedPan.setAttribute('multiple', 'multiple');
+            pedChoices = new Choices(pedPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
+            pedPan.onchange = () => renderizarCantidades('ped-pan', 'ped-cantidades-container');
+        }
         renderizarCantidades('ped-pan', 'ped-cantidades-container');
     }
     if(merPan) { 
-        if(merChoices) merChoices.destroy(); 
-        merPan.innerHTML = optionsMulti; 
-        merPan.setAttribute('multiple', 'multiple');
-        merChoices = new Choices(merPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
-        merPan.onchange = () => renderizarCantidades('mer-pan', 'mer-cantidades-container');
+        if(merChoices) {
+            merChoices.clearChoices();
+            merChoices.setChoices(choicesData, 'value', 'label', true);
+        } else {
+            let optionsMulti = '<option value="">Buscar y seleccionar producto(s)...</option>';
+            inventario.forEach(p => { optionsMulti += `<option value="${p.id}" data-precio="${p.precio}" data-nombre="${p.nombre}">${p.nombre}</option>`; });
+            merPan.innerHTML = optionsMulti; 
+            merPan.setAttribute('multiple', 'multiple');
+            merChoices = new Choices(merPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
+            merPan.onchange = () => renderizarCantidades('mer-pan', 'mer-cantidades-container');
+        }
         renderizarCantidades('mer-pan', 'mer-cantidades-container');
     }
-    if(promoPan) promoPan.innerHTML = optionPromo;
-    if(recNombre) recNombre.innerHTML = optionReceta;
+    
+    if(promoPan) {
+        let optionPromo = '<option value="" selected>Aplica a todo el carrito</option>';
+        inventario.forEach(p => { optionPromo += `<option value="${p.id}" data-precio="${p.precio}" data-nombre="${p.nombre}">Solo a: ${p.nombre}</option>`; });
+        promoPan.innerHTML = optionPromo;
+    }
+    if(recNombre) {
+        let optionReceta = '<option value="" disabled selected>Selecciona un pan del inventario</option>';
+        inventario.forEach(p => { optionReceta += `<option value="${p.nombre}">${p.nombre}</option>`; });
+        recNombre.innerHTML = optionReceta;
+    }
 }
 
 // --- PEDIDOS ---
