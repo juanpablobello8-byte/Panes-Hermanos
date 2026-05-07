@@ -833,7 +833,7 @@ async function agregarReceta(e) {
     let ingredientesList = [];
     for(let opt of seleccionados) {
         const insumoId = parseInt(opt.value);
-        const insumoNombre = opt.getAttribute('data-nombre');
+        const insumoNombre = opt.getAttribute('data-nombre') || opt.text.split(' (')[0];
         const cantiInput = document.getElementById(`cant-rec-ingredientes-${opt.value}`);
         const unidadInput = document.getElementById(`uni-rec-ingredientes-${opt.value}`);
         const cantidad = cantiInput ? parseFloat(cantiInput.value) : 1;
@@ -896,7 +896,7 @@ async function agregarOrden(e) {
     
     for(let opt of seleccionados) {
         const recetaId = parseInt(opt.value);
-        const recetaNombre = opt.getAttribute('data-nombre');
+        const recetaNombre = opt.getAttribute('data-nombre') || opt.text.split(' (')[0];
         const cantiInput = document.getElementById(`cant-ord-pan-${opt.value}`);
         const cantidadOrden = cantiInput ? parseInt(cantiInput.value) : 1;
         
@@ -1032,7 +1032,7 @@ async function agregarMerma(e) {
     
     try {
         for(let opt of seleccionados) {
-            const panName = opt.getAttribute('data-nombre');
+            const panName = opt.getAttribute('data-nombre') || opt.text.split(' (')[0];
             const cantiInput = document.getElementById(`cant-mer-pan-${opt.value}`);
             const cantidad = cantiInput ? parseInt(cantiInput.value) : 1;
             const data = { pan: panName, cantidad: cantidad, motivo: motivo };
@@ -1147,7 +1147,7 @@ function renderizarCantidades(selectId, containerId) {
             
             html += `
                 <div class="col-md-3 col-sm-4 col-6">
-                    <label class="form-label small mb-0 text-truncate w-100" title="${opt.getAttribute('data-nombre')}">${opt.getAttribute('data-nombre')}</label>
+                    <label class="form-label small mb-0 text-truncate w-100" title="${opt.getAttribute('data-nombre') || opt.text.split(' (')[0]}">${opt.getAttribute('data-nombre') || opt.text.split(' (')[0]}</label>
                     <div class="input-group input-group-sm">
                         <span class="input-group-text">#</span>
                         <input type="number" class="form-control cant-dinamica" id="cant-${selectId}-${opt.value}" data-id="${opt.value}" value="${val}" ${inputAttr} required>
