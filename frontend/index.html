@@ -22,7 +22,7 @@
   <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
 
   <link href="assets/css/style.css" rel="stylesheet">
-
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
 </head>
 
 <body>
@@ -68,38 +68,84 @@
 
     <ul class="sidebar-nav" id="sidebar-nav">
 
-      <li class="nav-item">
+      <li class="nav-item menu-ventas">
         <a class="nav-link" href="#" onclick="cambiarModulo('modulo-ventas')">
           <i class="bi bi-cart-dash"></i>
           <span>Ventas</span>
         </a>
       </li>
 
-      <li class="nav-item">
+      <li class="nav-item menu-inventario">
         <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-inventario')">
           <i class="bi bi-box-seam"></i>
           <span>Inventario</span>
         </a>
       </li>
 
-      <li class="nav-item nav-item-admin">
+      <li class="nav-item menu-promociones d-none">
         <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-promociones')">
           <i class="bi bi-tags"></i>
           <span>Promociones</span>
         </a>
       </li>
 
-      <li class="nav-item nav-item-admin">
+      <li class="nav-item menu-empleados">
         <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-empleados')">
           <i class="bi bi-people"></i>
           <span>Empleados</span>
         </a>
       </li>
 
-      <li class="nav-item nav-item-admin">
+      <li class="nav-item menu-reportes">
         <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-reportes')">
           <i class="bi bi-bar-chart-line"></i>
           <span>Reportes</span>
+        </a>
+      </li>
+
+      <li class="nav-item menu-recetas d-none">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-recetas')">
+          <i class="bi bi-journal-text"></i>
+          <span>Recetas</span>
+        </a>
+      </li>
+
+      <li class="nav-item menu-ordenes d-none">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-ordenes')">
+          <i class="bi bi-fire"></i>
+          <span>Órdenes de Horneado</span>
+        </a>
+      </li>
+
+      <li class="nav-item menu-mermas d-none">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-mermas')">
+          <i class="bi bi-trash"></i>
+          <span>Mermas</span>
+        </a>
+      </li>
+
+      <li class="nav-item menu-pedidos">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-pedidos')">
+          <i class="bi bi-bag-check"></i>
+          <span>Pedidos</span>
+        </a>
+      </li>
+
+      <li class="nav-item menu-insumos d-none">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-insumos')">
+          <i class="bi bi-box-arrow-in-down"></i>
+          <span>Carga de Insumos</span>
+        </a>
+      </li>
+
+      <!-- Menú dinámico para plugins -->
+      <div id="menu-plugins-container"></div>
+
+      <!-- Menú Gestor de Plugins (Solo admin) -->
+      <li class="nav-item d-none" id="menu-gestor-plugins">
+        <a class="nav-link collapsed" href="#" onclick="cambiarModulo('modulo-gestor-plugins')">
+          <i class="bi bi-puzzle"></i>
+          <span>Gestor de Plugins</span>
         </a>
       </li>
 
@@ -269,12 +315,18 @@
           <div class="card-body">
             <h5 class="card-title">Nueva Promoción</h5>
             <form id="form-promociones" class="row g-3" onsubmit="agregarPromocion(event)">
-              <div class="col-md-5">
+              <div class="col-md-3">
                 <input type="text" class="form-control" id="promo-nombre"
-                  placeholder="Nombre de promoción (ej. 2x1 Conchas)" required>
+                  placeholder="Nombre ej. 2x1 Conchas" required>
               </div>
-              <div class="col-md-5">
-                <input type="text" class="form-control" id="promo-desc" placeholder="Descripción detallada" required>
+              <div class="col-md-3">
+                <input type="number" class="form-control" id="promo-pct" placeholder="% Descuento" min="1" max="100" required>
+              </div>
+              <div class="col-md-4">
+                <select class="form-select" id="promo-pan">
+                  <option value="" selected>Aplica a todo el carrito</option>
+                  <!-- Se llena con popularSelectsDelInventario -->
+                </select>
               </div>
               <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">
@@ -325,6 +377,7 @@
                   <option value="" disabled selected>Selecciona un Rol</option>
                   <option value="Administrador">Administrador</option>
                   <option value="Cajero">Cajero</option>
+                  <option value="Panadero">Panadero</option>
                 </select>
               </div>
               <div class="col-md-3 mt-2">
@@ -432,6 +485,190 @@
         </div>
       </section>
     </div>
+
+    <div id="modulo-recetas" class="modulo" style="display: none;">
+      <div class="pagetitle"><h1>Gestión de Recetas</h1></div>
+      <section class="section">
+        <div class="card"><div class="card-body">
+          <h5 class="card-title">Nueva Receta</h5>
+          <form id="form-recetas" class="row g-3" onsubmit="agregarReceta(event)">
+            <div class="col-md-4">
+              <select class="form-select" id="rec-nombre" required>
+                <option value="" disabled selected>Selecciona un pan del inventario</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <select class="form-select" id="rec-ingredientes" multiple required>
+                <option value="" disabled>Mantén Ctrl para seleccionar varios</option>
+              </select>
+            </div>
+            <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Guardar</button></div>
+            <div class="col-12 mt-2" id="rec-cantidades-container"></div>
+          </form>
+        </div></div>
+        <div class="card mt-4"><div class="card-body">
+          <h5 class="card-title">Recetario</h5>
+          <table class="table">
+            <thead><tr><th>Receta</th><th>Ingredientes</th><th>Acción</th></tr></thead>
+            <tbody id="tabla-recetas"></tbody>
+          </table>
+        </div></div>
+      </section>
+    </div>
+
+    <div id="modulo-ordenes" class="modulo" style="display: none;">
+      <div class="pagetitle"><h1>Órdenes de Horneado</h1></div>
+      <section class="section">
+        <div class="card"><div class="card-body">
+          <h5 class="card-title">Nueva Orden</h5>
+          <form id="form-ordenes" class="row g-3" onsubmit="agregarOrden(event)">
+            <div class="col-md-10">
+              <select class="form-select" id="ord-pan" multiple required>
+                <option value="" disabled>Mantén Ctrl para seleccionar varios</option>
+              </select>
+            </div>
+            <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Crear</button></div>
+            <div class="col-12 mt-2" id="ord-cantidades-container"></div>
+          </form>
+        </div></div>
+        <div class="card mt-4"><div class="card-body">
+          <h5 class="card-title">En Cola</h5>
+          <table class="table">
+            <thead><tr><th>Pan</th><th>Cantidad</th><th>Estado</th><th>Acción</th></tr></thead>
+            <tbody id="tabla-ordenes"></tbody>
+          </table>
+        </div></div>
+      </section>
+    </div>
+
+    <div id="modulo-mermas" class="modulo" style="display: none;">
+      <div class="pagetitle"><h1>Control de Mermas</h1></div>
+      <section class="section">
+        <div class="card"><div class="card-body">
+          <h5 class="card-title">Registrar Merma</h5>
+          <form id="form-mermas" class="row g-3" onsubmit="agregarMerma(event)">
+            <div class="col-md-6">
+              <select class="form-select" id="mer-pan" multiple required>
+                <option value="" disabled>Mantén Ctrl para seleccionar varios</option>
+              </select>
+            </div>
+            <div class="col-md-4"><input type="text" class="form-control" id="mer-motivo" placeholder="Motivo (quemado, etc.)" required></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-danger w-100">Registrar</button></div>
+            <div class="col-12 mt-2" id="mer-cantidades-container"></div>
+          </form>
+        </div></div>
+        <div class="card mt-4"><div class="card-body">
+          <h5 class="card-title">Historial de Mermas</h5>
+          <table class="table">
+            <thead><tr><th>Pan</th><th>Cantidad</th><th>Motivo</th><th>Fecha</th><th>Acción</th></tr></thead>
+            <tbody id="tabla-mermas"></tbody>
+          </table>
+        </div></div>
+      </section>
+    </div>
+
+    <div id="modulo-pedidos" class="modulo" style="display: none;">
+      <div class="pagetitle"><h1>Gestión de Pedidos</h1></div>
+      <section class="section">
+        <div class="card"><div class="card-body">
+          <h5 class="card-title">Nuevo Pedido Especial</h5>
+          <form id="form-pedidos" class="row g-3" onsubmit="agregarPedido(event)">
+            <div class="col-md-3">
+              <input type="text" class="form-control" id="ped-cliente" placeholder="Nombre cliente" required>
+            </div>
+            <div class="col-md-4">
+              <select class="form-select" id="ped-pan" multiple required size="3">
+                <option value="" disabled>Mantén Ctrl para seleccionar varios</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <input type="date" class="form-control" id="ped-fecha" required>
+            </div>
+            <div class="col-md-2">
+              <button type="submit" class="btn btn-primary w-100">Agendar</button>
+            </div>
+            <div class="col-12 mt-2" id="ped-cantidades-container"></div>
+          </form>
+        </div></div>
+        <div class="card mt-4"><div class="card-body">
+          <h5 class="card-title">Próximas Entregas</h5>
+          <table class="table">
+            <thead><tr><th>Cliente</th><th>Detalle</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead>
+            <tbody id="tabla-pedidos"></tbody>
+          </table>
+        </div></div>
+      </section>
+    </div>
+
+    <div id="modulo-gestor-plugins" class="modulo" style="display: none;">
+      <div class="pagetitle"><h1>Gestor de Plugins</h1></div>
+      <section class="section">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card"><div class="card-body">
+              <h5 class="card-title">Instalar Plugin</h5>
+              <form id="form-plugin" onsubmit="instalarPlugin(event)">
+                <div class="mb-3">
+                  <label for="plugin-file" class="form-label">Archivo ZIP del Plugin</label>
+                  <input class="form-control" type="file" id="plugin-file" accept=".zip" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100" id="btn-instalar-plugin">Subir e Instalar</button>
+              </form>
+            </div></div>
+          </div>
+          <div class="col-md-6">
+            <div class="card"><div class="card-body">
+              <h5 class="card-title">Plugins Instalados</h5>
+              <ul class="list-group" id="lista-plugins-instalados">
+                <li class="list-group-item text-muted">Cargando plugins...</li>
+              </ul>
+            </div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Contenedor para la UI de los plugins dinámicos -->
+    <div id="modulos-plugins-container"></div>
+
+    <div id="modulo-insumos" class="modulo" style="display: none;">
+      <div class="pagetitle"><h1>Carga de Insumos (Materia Prima)</h1></div>
+      <section class="section">
+        <div class="card"><div class="card-body">
+          <h5 class="card-title">Ingreso de Material</h5>
+          <form id="form-insumos" class="row g-3" onsubmit="agregarInsumo(event)">
+            <div class="col-md-4"><input type="text" class="form-control" id="ins-nombre" placeholder="Nombre (ej. Harina, Huevo)" required></div>
+            <div class="col-md-3"><input type="text" class="form-control" id="ins-cantidad" placeholder="Cantidad (Kg, L, pzas)" required></div>
+            <div class="col-md-3"><input type="number" class="form-control" id="ins-costo" placeholder="Costo Total $" required></div>
+            <div class="col-md-2"><button type="submit" class="btn btn-primary w-100">Cargar</button></div>
+          </form>
+        </div></div>
+        <div class="card mt-4"><div class="card-body">
+          <h5 class="card-title">Inventario de Insumos</h5>
+          <table class="table">
+            <thead><tr><th>Insumo</th><th>Cantidad</th><th>Costo</th><th>Acción</th></tr></thead>
+            <tbody id="tabla-insumos"></tbody>
+          </table>
+        </div></div>
+      </section>
+    </div>
+
+    <!-- Módulo Sin Plugins -->
+    <div id="modulo-sin-plugins" class="modulo" style="display: none;">
+      <div class="pagetitle">
+        <h1>Área de Trabajo</h1>
+      </div>
+      <section class="section">
+        <div class="card">
+          <div class="card-body text-center py-5">
+            <i class="bi bi-puzzle text-muted" style="font-size: 4rem;"></i>
+            <h4 class="mt-3 text-secondary">No hay herramientas habilitadas</h4>
+            <p class="text-muted">Pide a tu gerente o administrador que habilite los plugins correspondientes para comenzar a trabajar.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <br>
     <br>
 
@@ -506,6 +743,15 @@
               <span class="fs-5 fw-bold">Total a Pagar:</span>
               <span class="fs-4 fw-bold text-primary">$<span id="cobro-total">0.00</span></span>
             </div>
+            
+            <div class="mb-3 p-2 border rounded bg-light">
+              <label class="form-label text-muted mb-1"><small><i class="bi bi-tags"></i> Aplicar Promoción</small></label>
+              <select id="cobro-promocion" class="form-select mb-1" onchange="aplicarPromocionACobro()">
+                <option value="">-- Sin Promoción --</option>
+              </select>
+              <div id="cobro-promo-aviso" class="text-success small fw-bold" style="display:none;">Descuento válido</div>
+            </div>
+            
             <div class="mb-3">
               <label for="cobro-efectivo" class="form-label fw-bold">Efectivo Recibido ($):</label>
               <input type="number" class="form-control form-control-lg" id="cobro-efectivo" placeholder="0.00" onkeyup="calcularCambio()" onchange="calcularCambio()" min="0">
@@ -538,7 +784,8 @@
       class="bi bi-arrow-up-short"></i></a>
 
   <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/js/main.js?v=5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <script src="assets/js/main.js?v=18"></script>
 
 
 </body>

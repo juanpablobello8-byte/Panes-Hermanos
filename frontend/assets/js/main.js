@@ -7,6 +7,11 @@ const API_VENTAS = `${API_BASE}/ventas`;
 const API_REPORTES = `${API_BASE}/reportes`;
 const API_EMPLEADOS = `${API_BASE}/empleados`;
 const API_PROMOCIONES = `${API_BASE}/promociones`;
+const API_RECETAS = `${API_BASE}/recetas`;
+const API_ORDENES = `${API_BASE}/ordenes`;
+const API_MERMAS = `${API_BASE}/mermas`;
+const API_PEDIDOS = `${API_BASE}/pedidos`;
+const API_INSUMOS = `${API_BASE}/insumos`;
 
 /* =========================================
    ESTADO DE LA APLICACIÓN
@@ -17,6 +22,9 @@ let promociones = [];
 let carrito = [];
 let historialVentas = [];
 let ventaActivaModal = null; // Venta actualmente abierta en el modal de detalles
+
+// Memoria para Nuevos Plugins
+let recetas = []; let ordenes = []; let mermas = []; let pedidos = []; let insumos = [];
 
 /* =========================================
    NAVEGACIÓN Y UI
@@ -31,30 +39,117 @@ function cambiarModulo(idModulo) {
 
 function actualizarSidebar(idModuloActive) {
     const links = document.querySelectorAll('.sidebar-nav .nav-link');
-    links.forEach(link => link.classList.add('collapsed'));
-    let indice = 0;
-    if(idModuloActive === 'modulo-inventario') indice = 1;
-
-    const rol = localStorage.getItem('ph_rol_activo');
-    if (rol !== 'Cajero') {
-        if(idModuloActive === 'modulo-promociones') indice = 2;
-        if(idModuloActive === 'modulo-empleados') indice = 3;
-        if(idModuloActive === 'modulo-reportes') indice = 4;
-    }
-    
-    if(links[indice]) links[indice].classList.remove('collapsed');
+    links.forEach(link => {
+        link.classList.add('collapsed');
+        if (link.getAttribute('onclick') && link.getAttribute('onclick').includes(idModuloActive)) {
+            link.classList.remove('collapsed');
+        }
+    });
 }
 
 async function actualizarVistas() {
+    verificarAdminParaPlugins();
+    await cargarPluginsActivos();
     await obtenerInventarioDeServidor();
     await obtenerEmpleadosDeServidor();
-    await obtenerPromocionesDeServidor();
+    try { await obtenerPromocionesDeServidor(); } catch(e){}
     renderizarInventario();
     renderizarEmpleados();
-    renderizarPromociones();
+    try { renderizarPromociones(); } catch(e){}
     renderizarProductosVenta();
-    renderizarReportes();
-    renderizarVentasStats();
+    try { renderizarReportes(); renderizarVentasStats(); } catch(e){}
+    try { await cargarRecetas(); } catch(e){}
+    try { await cargarOrdenes(); } catch(e){}
+    try { await cargarMermas(); } catch(e){}
+    await cargarPedidos();
+    try { await cargarInsumos(); } catch(e){}
+}
+
+async function cargarPluginsActivos() {
+    try {
+        const res = await fetch(`http://localhost:8000/api/gestor-plugins/activos`);
+        if(res.ok) {
+            const activos = await res.json();
+            const ul = document.getElementById('lista-plugins-instalados');
+            if(ul) ul.innerHTML = '';
+            
+            activos.forEach(p => {
+                const menuItem = document.querySelector(`.${p.menu_class}`);
+                if(menuItem) menuItem.classList.remove('d-none');
+                
+                if(ul) {
+                    ul.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${p.name}
+                        <div>
+                            <span class="badge bg-success rounded-pill me-2">Activo</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="desinstalarPlugin('${p.id}')">
+                                <i class="bi bi-box-arrow-right"></i> Extraer
+                            </button>
+                        </div>
+                    </li>`;
+                }
+            });
+            if(activos.length === 0 && ul) ul.innerHTML = '<li class="list-group-item text-muted">No hay plugins instalados</li>';
+        }
+    } catch(e) { console.error("Error cargando plugins:", e); }
+}
+
+async function instalarPlugin(e) {
+    e.preventDefault();
+    const fileInput = document.getElementById('plugin-file');
+    const btn = document.getElementById('btn-instalar-plugin');
+    if(fileInput.files.length === 0) return alert('Selecciona un archivo .zip');
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    
+    btn.disabled = true;
+    btn.innerText = 'Instalando...';
+    try {
+        const res = await fetch(`http://localhost:8000/api/gestor-plugins/upload`, { method: 'POST', body: formData });
+        if(res.ok) {
+            alert('Plugin instalado exitosamente.');
+            document.getElementById('form-plugin').reset();
+            await cargarPluginsActivos();
+            if(confirm('¿Recargar la página para aplicar los cambios del plugin en el sistema?')) {
+                window.location.reload(true);
+            }
+        } else {
+            const err = await res.json();
+            alert('Error al instalar: ' + (err.detail || ''));
+        }
+    } catch(e) { 
+        alert('Error de conexión.');
+        console.error(e);
+    }
+    btn.disabled = false;
+    btn.innerText = 'Subir e Instalar';
+}
+
+async function desinstalarPlugin(pluginId) {
+    if(!confirm('¿Seguro que deseas extraer este plugin?\\n\\nNOTA: Toda la información e historial generados con este plugin (como registros, mermas, órdenes) permanecerán seguros en la base de datos en tiempo real. Cuando vuelvas a instalar el plugin, toda tu información se restaurará automáticamente.')) return;
+    
+    try {
+        const res = await fetch(`http://localhost:8000/api/gestor-plugins/uninstall/${pluginId}`, { method: 'DELETE' });
+        if(res.ok) {
+            alert('Plugin extraído correctamente. El sistema se recargará para ocultar el módulo.');
+            window.location.reload(true);
+        } else {
+            const err = await res.json();
+            alert('Error al extraer: ' + (err.detail || ''));
+        }
+    } catch(e) {
+        alert('Error de conexión al intentar extraer el plugin.');
+        console.error(e);
+    }
+}
+
+function verificarAdminParaPlugins() {
+    const rol = localStorage.getItem('ph_rol_activo');
+    if (rol === 'Administrador') {
+        const menuGestor = document.getElementById('menu-gestor-plugins');
+        if(menuGestor) menuGestor.classList.remove('d-none');
+    }
 }
 
 async function renderizarVentasStats() {
@@ -83,7 +178,10 @@ async function renderizarVentasStats() {
 async function obtenerInventarioDeServidor() {
     try {
         const respuesta = await fetch(`${API_INVENTARIO}/productos`);
-        if(respuesta.ok) inventario = await respuesta.json();
+        if(respuesta.ok) {
+            inventario = await respuesta.json();
+            popularSelectsDelInventario();
+        }
     } catch (e) {
         console.error("Error obteniendo inventario:", e);
     }
@@ -243,12 +341,17 @@ async function obtenerPromocionesDeServidor() {
 async function agregarPromocion(evento) {
     evento.preventDefault();
     let nombre = document.getElementById('promo-nombre').value;
-    let descripcion = document.getElementById('promo-desc').value;
+    let pct = parseFloat(document.getElementById('promo-pct').value);
+    let panDropdown = document.getElementById('promo-pan').value;
+
+    let idAplicable = null;
+    if(panDropdown) idAplicable = parseInt(panDropdown);
 
     let nuevaPromoReq = { 
         nombre: nombre, 
-        descripcion: descripcion,
-        descuento_porcentaje: 0,
+        descripcion: "Promoción generada",
+        descuento_porcentaje: pct,
+        producto_id_aplicable: idAplicable,
         fecha_inicio: new Date().toISOString().split('T')[0],
         fecha_fin: new Date().toISOString().split('T')[0]
     };
@@ -458,6 +561,10 @@ function renderizarCarrito() {
     document.getElementById('total-venta').innerText = total.toFixed(2);
 }
 
+let totalOriginalVenta = 0;
+let promocionCobradoStr = "";
+let descuentoValorCobro = 0;
+
 function abrirModalCobro() {
     if (carrito.length === 0) {
         alert("El carrito está vacío. Agregue productos para cobrar.");
@@ -483,15 +590,77 @@ function abrirModalCobro() {
     });
 
     document.getElementById("cobro-total").innerText = totalPagar.toFixed(2);
+    totalOriginalVenta = totalPagar;
     document.getElementById("cobro-efectivo").value = ""; 
     document.getElementById("alerta-cambio").className = "alert alert-secondary text-center";
     document.getElementById("alerta-cambio").innerText = "Ingrese el monto con el que paga el cliente.";
     document.getElementById("btn-confirmar-cobro").disabled = true;
 
+    const combo = document.getElementById("cobro-promocion");
+    if(combo) {
+        let opts = '<option value="">-- Sin Promoción --</option>';
+        promociones.forEach(pr => {
+            if(pr.activa) opts += `<option value="${pr.id}" data-pct="${pr.descuento_porcentaje}" data-prod="${pr.producto_id_aplicable||''}">${pr.nombre} (-${pr.descuento_porcentaje}%)</option>`;
+        });
+        combo.innerHTML = opts;
+        combo.value = "";
+    }
+    const aviso = document.getElementById("cobro-promo-aviso");
+    if(aviso) aviso.style.display = "none";
+    descuentoValorCobro = 0;
+    promocionCobradoStr = "";
+
     let modalElement = document.getElementById('modal-cobro');
     let modal = bootstrap.Modal.getInstance(modalElement);
     if (!modal) modal = new bootstrap.Modal(modalElement);
     modal.show();
+}
+
+function aplicarPromocionACobro() {
+    let combo = document.getElementById("cobro-promocion");
+    let aviso = document.getElementById("cobro-promo-aviso");
+    descuentoValorCobro = 0;
+    promocionCobradoStr = "";
+
+    if(!combo.value) {
+        aviso.style.display = "none";
+        document.getElementById("cobro-total").innerText = totalOriginalVenta.toFixed(2);
+        calcularCambio();
+        return;
+    }
+    
+    let opt = combo.options[combo.selectedIndex];
+    let pct = parseFloat(opt.getAttribute("data-pct"));
+    let prod = opt.getAttribute("data-prod"); 
+    
+    if(prod) {
+        prod = parseInt(prod);
+        let subtotalProd = 0;
+        carrito.forEach(i => {
+           if(i.id === prod) subtotalProd += (i.precio * i.cantidad);
+        });
+        descuentoValorCobro = subtotalProd * (pct/100);
+    } else {
+        descuentoValorCobro = totalOriginalVenta * (pct/100);
+    }
+    
+    let nuevoTotal = totalOriginalVenta - descuentoValorCobro;
+    if(nuevoTotal < 0) nuevoTotal = 0;
+    
+    document.getElementById("cobro-total").innerText = nuevoTotal.toFixed(2);
+    
+    if(descuentoValorCobro > 0) {
+        aviso.innerText = `Descuento de la promo: -$${descuentoValorCobro.toFixed(2)}`;
+        aviso.className = "text-success small fw-bold";
+        aviso.style.display = "block";
+        promocionCobradoStr = `Ahorro $${descuentoValorCobro.toFixed(2)} por ${opt.text}`;
+    } else {
+        aviso.innerText = `No aplica a los artículos`;
+        aviso.style.display = "block";
+        aviso.className = "text-danger small fw-bold";
+    }
+    
+    calcularCambio();
 }
 
 function calcularCambio() {
@@ -542,9 +711,12 @@ async function procesarVenta() {
     let totalPagar = parseFloat(unparsedTotal);
     let cambio = efectivo - totalPagar;
 
+    let metPagoFinal = "Efectivo";
+    if(promocionCobradoStr) metPagoFinal += " (" + promocionCobradoStr + ")";
+
     const ventaData = {
         detalles: detallesParaBackend,
-        metodo_pago: "Efectivo",
+        metodo_pago: metPagoFinal,
         empleado_id: empleadoActivo ? parseInt(empleadoActivo) : null,
         efectivo_recibido: efectivo,
         cambio_entregado: cambio
@@ -623,7 +795,591 @@ async function renderizarReportes() {
     }
 }
 
-window.addEventListener('load', () => {
+/* =========================================
+   NUEVOS PLUGINS FUNCIONALES
+   ========================================= */
+
+// --- RECETAS ---
+async function cargarRecetas() {
+    try {
+        let res = await fetch(`${API_RECETAS}/recetas`);
+        recetas = await res.json();
+        renderizarRecetasUI();
+        popularSelectsDeRecetas();
+    } catch (e) { console.error(e); }
+}
+async function agregarReceta(e) {
+    e.preventDefault();
+    const select = document.getElementById('rec-ingredientes');
+    const seleccionados = Array.from(select.selectedOptions).filter(opt => opt.value !== "");
+    if(seleccionados.length === 0) return alert('Selecciona al menos un insumo');
+    
+    let ingredientesList = [];
+    for(let opt of seleccionados) {
+        const insumoId = parseInt(opt.value);
+        const insumoNombre = opt.getAttribute('data-nombre');
+        const cantiInput = document.getElementById(`cant-rec-ingredientes-${opt.value}`);
+        const unidadInput = document.getElementById(`uni-rec-ingredientes-${opt.value}`);
+        const cantidad = cantiInput ? parseFloat(cantiInput.value) : 1;
+        const unidad = unidadInput ? unidadInput.value : 'x';
+        ingredientesList.push({ insumo_id: insumoId, nombre: insumoNombre, cantidad: cantidad, unidad: unidad });
+    }
+    
+    const data = { 
+        nombre: document.getElementById('rec-nombre').value, 
+        ingredientes: JSON.stringify(ingredientesList) 
+    };
+    
+    try {
+        await fetch(`${API_RECETAS}/recetas`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        document.getElementById('form-recetas').reset(); 
+        if(recChoices) recChoices.removeActiveItems();
+        document.getElementById('rec-cantidades-container').innerHTML = '';
+        await cargarRecetas();
+    } catch(e) { console.error(e); }
+}
+async function eliminarReceta(id) {
+    if(!confirm("¿Borrar receta?")) return;
+    try {
+        await fetch(`${API_RECETAS}/recetas/${id}`, { method: 'DELETE' }); await cargarRecetas();
+    } catch(e) { console.error(e); }
+}
+function renderizarRecetasUI() {
+    let tbody = document.getElementById('tabla-recetas'); if(!tbody) return; tbody.innerHTML = '';
+    recetas.forEach(r => {
+        let ingText = r.ingredientes;
+        try {
+            let parsed = JSON.parse(r.ingredientes);
+            if(Array.isArray(parsed)) {
+                ingText = parsed.map(i => {
+                    let u = (i.unidad && i.unidad !== 'x') ? ' ' + i.unidad : '';
+                    return `${i.cantidad}${u} ${i.nombre}`;
+                }).join(', ');
+            }
+        } catch(e) {}
+        tbody.innerHTML += `<tr><td>${r.nombre}</td><td>${ingText}</td><td><button class="btn btn-sm btn-danger" onclick="eliminarReceta(${r.id})"><i class="bi bi-trash"></i></button></td></tr>`;
+    });
+}
+
+// --- ORDENES ---
+async function cargarOrdenes() {
+    try {
+        let res = await fetch(`${API_ORDENES}/ordenes`);
+        ordenes = await res.json();
+        renderizarOrdenesUI();
+    } catch (e) { console.error(e); }
+}
+async function agregarOrden(e) {
+    e.preventDefault();
+    const select = document.getElementById('ord-pan');
+    const seleccionados = Array.from(select.selectedOptions).filter(opt => opt.value !== "");
+    if(seleccionados.length === 0) return alert('Selecciona al menos una receta');
+    
+    let insumosDescontar = {};
+    let ordenesAGenerar = [];
+    
+    for(let opt of seleccionados) {
+        const recetaId = parseInt(opt.value);
+        const recetaNombre = opt.getAttribute('data-nombre');
+        const cantiInput = document.getElementById(`cant-ord-pan-${opt.value}`);
+        const cantidadOrden = cantiInput ? parseInt(cantiInput.value) : 1;
+        
+        ordenesAGenerar.push({ pan: recetaNombre, cantidad: cantidadOrden, estado: 'En Cola' });
+        
+        let receta = recetas.find(r => r.id === recetaId);
+        if(receta) {
+            try {
+                let ings = JSON.parse(receta.ingredientes);
+                ings.forEach(ing => {
+                    if(!insumosDescontar[ing.insumo_id]) insumosDescontar[ing.insumo_id] = 0;
+                    
+                    let ins = insumos.find(i => i.id === ing.insumo_id);
+                    let parsedInv = parsearInsumoCantYUnidad(ins ? ins.cantidad : '0');
+                    let baseUnit = parsedInv.unit.toLowerCase();
+                    
+                    let qtyToDeduct = ing.cantidad * cantidadOrden;
+                    let recipeUnit = (ing.unidad || 'x').toLowerCase();
+                    
+                    if (recipeUnit === 'gr' || recipeUnit === 'g' || recipeUnit === 'gramos') {
+                        if (baseUnit === 'kg') qtyToDeduct = qtyToDeduct / 1000;
+                    } else if (recipeUnit === 'ml' || recipeUnit === 'mililitros') {
+                        if (baseUnit === 'l') qtyToDeduct = qtyToDeduct / 1000;
+                    } else if (recipeUnit === 'kg' || recipeUnit === 'kilos' || recipeUnit === 'kilo') {
+                        if (baseUnit === 'kg') { /* same */ }
+                    } else if (recipeUnit === 'l' || recipeUnit === 'litros' || recipeUnit === 'litro') {
+                        if (baseUnit === 'l') { /* same */ }
+                    }
+                    
+                    insumosDescontar[ing.insumo_id] += qtyToDeduct;
+                });
+            } catch(e) {}
+        }
+    }
+    
+    for(let id in insumosDescontar) {
+        let ins = insumos.find(i => i.id === parseInt(id));
+        let parsedInv = parsearInsumoCantYUnidad(ins ? ins.cantidad : '0');
+        let cantNecesaria = insumosDescontar[id];
+        let cantDisponible = parsedInv.num;
+        
+        if(!ins || cantDisponible < cantNecesaria) {
+            alert(`No hay suficientes insumos de ${ins ? ins.nombre : 'ID '+id}. Necesitas ${cantNecesaria} ${parsedInv.unit}, pero tienes ${formatearInsumoParaDB(cantDisponible, parsedInv.unit)}.`);
+            return;
+        }
+    }
+    
+    try {
+        for(let id in insumosDescontar) {
+            let ins = insumos.find(i => i.id === parseInt(id));
+            let parsedInv = parsearInsumoCantYUnidad(ins.cantidad);
+            let nuevaCantNum = parsedInv.num - insumosDescontar[id];
+            
+            let insData = { 
+                nombre: ins.nombre, 
+                cantidad: formatearInsumoParaDB(nuevaCantNum, parsedInv.unit), 
+                costo: ins.costo 
+            };
+            await fetch(`${API_INSUMOS}/insumos/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(insData) });
+        }
+        
+        for(let orden of ordenesAGenerar) {
+            await fetch(`${API_ORDENES}/ordenes`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(orden) });
+        }
+        
+        document.getElementById('form-ordenes').reset(); 
+        if(ordChoices) ordChoices.removeActiveItems();
+        document.getElementById('ord-cantidades-container').innerHTML = '';
+        await cargarOrdenes();
+        await cargarInsumos();
+        alert("Orden(es) generada(s) y stock de insumos reducido correctamente.");
+    } catch(e) { console.error(e); }
+}
+async function completarOrden(id) {
+    let orden = ordenes.find(o => o.id === id);
+    if (!orden) return;
+    if (orden.estado === 'Completada') {
+        alert("Esta orden ya está completada.");
+        return;
+    }
+    try {
+        await fetch(`${API_ORDENES}/ordenes/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({estado: 'Completada'}) });
+        
+        let prod = inventario.find(p => p.nombre === orden.pan);
+        if (prod) {
+            let nuevaCantidad = prod.cantidad_en_stock + orden.cantidad;
+            let payload = {
+                nombre: prod.nombre,
+                descripcion: prod.descripcion,
+                precio: prod.precio,
+                cantidad_en_stock: nuevaCantidad,
+                categoria: prod.categoria
+            };
+            await fetch(`${API_INVENTARIO}/productos/${prod.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            await obtenerInventarioDeServidor();
+            await actualizarVistas();
+        }
+        
+        await cargarOrdenes();
+        alert("Orden completada e inventario actualizado.");
+    } catch(e) { console.error(e); }
+}
+async function eliminarOrden(id) {
+    if(!confirm("¿Borrar orden?")) return;
+    try {
+        await fetch(`${API_ORDENES}/ordenes/${id}`, { method: 'DELETE' }); await cargarOrdenes();
+    } catch(e) { console.error(e); }
+}
+function renderizarOrdenesUI() {
+    let tbody = document.getElementById('tabla-ordenes'); if(!tbody) return; tbody.innerHTML = '';
+    ordenes.forEach(o => tbody.innerHTML += `<tr><td>${o.pan}</td><td>${o.cantidad}</td><td><span class="badge ${o.estado==='Completada'?'bg-success':'bg-warning text-dark'}">${o.estado}</span></td><td><button class="btn btn-sm btn-success" onclick="completarOrden(${o.id})"><i class="bi bi-check"></i></button> <button class="btn btn-sm btn-danger" onclick="eliminarOrden(${o.id})"><i class="bi bi-trash"></i></button></td></tr>`);
+}
+
+// --- MERMAS ---
+async function cargarMermas() {
+    try {
+        let res = await fetch(`${API_MERMAS}/mermas`);
+        mermas = await res.json();
+        renderizarMermasUI();
+    } catch (e) { console.error(e); }
+}
+async function agregarMerma(e) {
+    e.preventDefault();
+    const select = document.getElementById('mer-pan');
+    const seleccionados = Array.from(select.selectedOptions).filter(opt => opt.value !== "");
+    if(seleccionados.length === 0) return alert('Selecciona al menos un pan');
+    
+    const motivo = document.getElementById('mer-motivo').value;
+    
+    try {
+        for(let opt of seleccionados) {
+            const panName = opt.getAttribute('data-nombre');
+            const cantiInput = document.getElementById(`cant-mer-pan-${opt.value}`);
+            const cantidad = cantiInput ? parseInt(cantiInput.value) : 1;
+            const data = { pan: panName, cantidad: cantidad, motivo: motivo };
+            await fetch(`${API_MERMAS}/mermas`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        }
+        document.getElementById('form-mermas').reset(); 
+        if(merChoices) merChoices.removeActiveItems();
+        document.getElementById('mer-cantidades-container').innerHTML = '';
+        await cargarMermas();
+    } catch(e) { console.error(e); }
+}
+async function eliminarMerma(id) {
+    if(!confirm("¿Seguro que quieres borrar este registro de merma?")) return;
+    try {
+        await fetch(`${API_MERMAS}/mermas/${id}`, { method: 'DELETE' }); 
+        await cargarMermas();
+    } catch(e) { console.error(e); }
+}
+function renderizarMermasUI() {
+    let tbody = document.getElementById('tabla-mermas'); if(!tbody) return; tbody.innerHTML = '';
+    mermas.forEach(m => tbody.innerHTML += `<tr><td>${m.pan}</td><td>${m.cantidad}</td><td>${m.motivo}</td><td>${m.fecha_registro}</td><td><button class="btn btn-sm btn-danger" onclick="eliminarMerma(${m.id})" title="Eliminar registro"><i class="bi bi-trash"></i></button></td></tr>`);
+}
+
+// --- FUNCIONES AUXILIARES DE INSUMOS ---
+function parsearInsumoCantYUnidad(str) {
+    str = str.toString().toLowerCase().trim();
+    let num = 0; let unit = "";
+    if (str.includes(' y ')) {
+        let parts = str.split(' y ');
+        let mainNum = parseFloat(parts[0]) || 0;
+        let subNum = parseFloat(parts[1]) || 0;
+        let mainUnitMatch = parts[0].match(/[a-zA-Z]+/g);
+        let mainUnit = mainUnitMatch ? mainUnitMatch.join('') : '';
+        if (mainUnit === 'kg' || mainUnit === 'kilos' || mainUnit === 'kilo') { num = mainNum + (subNum / 1000); unit = 'Kg'; }
+        else if (mainUnit === 'l' || mainUnit === 'litro' || mainUnit === 'litros') { num = mainNum + (subNum / 1000); unit = 'L'; }
+        else { num = mainNum; unit = mainUnit; }
+    } else {
+        num = parseFloat(str) || 0;
+        let unitMatch = str.match(/[a-zA-Z]+/g);
+        unit = unitMatch ? unitMatch.join('') : '';
+        if (unit === 'kg' || unit === 'kilos' || unit === 'kilo') unit = 'Kg';
+        if (unit === 'l' || unit === 'litro' || unit === 'litros') unit = 'L';
+        if (unit === 'gr' || unit === 'g' || unit === 'gramos') { num = num / 1000; unit = 'Kg'; }
+        if (unit === 'ml' || unit === 'mililitros') { num = num / 1000; unit = 'L'; }
+    }
+    return { num, unit };
+}
+
+function formatearInsumoParaDB(num, unit) {
+    let u = unit.toLowerCase();
+    if (u === 'kg') {
+        let kilos = Math.floor(num);
+        let gramos = Math.round((num - kilos) * 1000);
+        if (gramos === 0) return `${kilos} Kg`;
+        if (kilos === 0) return `${gramos} gr`;
+        return `${kilos} Kg y ${gramos} gr`;
+    } else if (u === 'l') {
+        let litros = Math.floor(num);
+        let ml = Math.round((num - litros) * 1000);
+        if (ml === 0) return `${litros} L`;
+        if (litros === 0) return `${ml} ml`;
+        return `${litros} L y ${ml} ml`;
+    } else {
+        let numStr = Number.isInteger(num) ? num.toString() : num.toFixed(2);
+        return `${numStr}${unit}`;
+    }
+}
+
+// --- FUNCION DE CANTIDADES DINAMICAS ---
+function renderizarCantidades(selectId, containerId) {
+    const select = document.getElementById(selectId);
+    const container = document.getElementById(containerId);
+    if(!select || !container) return;
+    
+    const seleccionados = Array.from(select.selectedOptions).filter(opt => opt.value !== "");
+    const valoresPrevios = {};
+    const unidadesPrevias = {};
+    container.querySelectorAll('input.cant-dinamica').forEach(input => { valoresPrevios[input.dataset.id] = input.value; });
+    container.querySelectorAll('select.uni-dinamica').forEach(sel => { unidadesPrevias[sel.dataset.id] = sel.value; });
+    
+    container.innerHTML = '';
+    if(seleccionados.length > 0) {
+        let html = '<div class="row g-2 mt-1 pt-2 border-top">';
+        html += '<div class="col-12"><small class="text-muted fw-bold">Especifica la cantidad necesaria de cada insumo para una sola receta:</small></div>';
+        seleccionados.forEach(opt => {
+            const val = valoresPrevios[opt.value] || '1';
+            const un = unidadesPrevias[opt.value] || 'x';
+            
+            // Selector de unidad opcional si es receta
+            let selectUnidadHtml = '';
+            if (selectId === 'rec-ingredientes') {
+                selectUnidadHtml = `
+                    <select class="form-select form-select-sm uni-dinamica" id="uni-${selectId}-${opt.value}" data-id="${opt.value}" style="max-width: 80px;">
+                        <option value="x" ${un === 'x' ? 'selected' : ''}>Disp.</option>
+                        <option value="kg" ${un === 'kg' ? 'selected' : ''}>Kg</option>
+                        <option value="gr" ${un === 'gr' ? 'selected' : ''}>gr</option>
+                        <option value="l" ${un === 'l' ? 'selected' : ''}>L</option>
+                        <option value="ml" ${un === 'ml' ? 'selected' : ''}>ml</option>
+                        <option value="pz" ${un === 'pz' ? 'selected' : ''}>pz</option>
+                    </select>
+                `;
+            }
+            
+            html += `
+                <div class="col-md-3 col-sm-4 col-6">
+                    <label class="form-label small mb-0 text-truncate w-100" title="${opt.getAttribute('data-nombre')}">${opt.getAttribute('data-nombre')}</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">#</span>
+                        <input type="number" class="form-control cant-dinamica" id="cant-${selectId}-${opt.value}" data-id="${opt.value}" value="${val}" min="0.01" step="0.01" required>
+                        ${selectUnidadHtml}
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+}
+
+// --- SELECTS GLOBALES DE INVENTARIO ---
+let pedChoices, ordChoices, merChoices, recChoices;
+
+function popularSelectsDeInsumos() {
+    const recIngredientes = document.getElementById('rec-ingredientes');
+    if(!recIngredientes) return;
+    
+    let optionsMulti = '<option value="">Buscar y seleccionar insumo(s)...</option>';
+    insumos.forEach(ins => {
+        optionsMulti += `<option value="${ins.id}" data-nombre="${ins.nombre}">${ins.nombre} (Disp: ${ins.cantidad})</option>`;
+    });
+    
+    recIngredientes.innerHTML = optionsMulti;
+    if(recChoices) recChoices.destroy();
+    recChoices = new Choices(recIngredientes, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
+    recIngredientes.onchange = () => renderizarCantidades('rec-ingredientes', 'rec-cantidades-container');
+    renderizarCantidades('rec-ingredientes', 'rec-cantidades-container');
+}
+
+function popularSelectsDeRecetas() {
+    const ordPan = document.getElementById('ord-pan');
+    if(!ordPan) return;
+    
+    let optionsMulti = '<option value="">Buscar y seleccionar receta(s)...</option>';
+    recetas.forEach(rec => {
+        optionsMulti += `<option value="${rec.id}" data-nombre="${rec.nombre}">${rec.nombre}</option>`;
+    });
+    
+    ordPan.innerHTML = optionsMulti;
+    if(ordChoices) ordChoices.destroy();
+    ordChoices = new Choices(ordPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'});
+    ordPan.onchange = () => renderizarCantidades('ord-pan', 'ord-cantidades-container');
+    renderizarCantidades('ord-pan', 'ord-cantidades-container');
+}
+
+function popularSelectsDelInventario() {
+    const pedPan = document.getElementById('ped-pan');
+    const merPan = document.getElementById('mer-pan');
+    const promoPan = document.getElementById('promo-pan');
+    const recNombre = document.getElementById('rec-nombre');
+    
+    let optionsMulti = '<option value="">Buscar y seleccionar producto(s)...</option>';
+    let optionPromo = '<option value="" selected>Aplica a todo el carrito</option>';
+    let optionReceta = '<option value="" disabled selected>Selecciona un pan del inventario</option>';
+    
+    inventario.forEach(p => {
+        optionsMulti += `<option value="${p.id}" data-precio="${p.precio}" data-nombre="${p.nombre}">${p.nombre}</option>`;
+        optionPromo += `<option value="${p.id}" data-precio="${p.precio}" data-nombre="${p.nombre}">Solo a: ${p.nombre}</option>`;
+        optionReceta += `<option value="${p.nombre}">${p.nombre}</option>`;
+    });
+
+    if(pedPan) { 
+        pedPan.innerHTML = optionsMulti; 
+        if(pedChoices) pedChoices.destroy(); 
+        pedChoices = new Choices(pedPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
+        pedPan.onchange = () => renderizarCantidades('ped-pan', 'ped-cantidades-container');
+        renderizarCantidades('ped-pan', 'ped-cantidades-container');
+    }
+    if(merPan) { 
+        merPan.innerHTML = optionsMulti; 
+        if(merChoices) merChoices.destroy(); 
+        merChoices = new Choices(merPan, {removeItemButton: true, searchPlaceholderValue: 'Buscar...'}); 
+        merPan.onchange = () => renderizarCantidades('mer-pan', 'mer-cantidades-container');
+        renderizarCantidades('mer-pan', 'mer-cantidades-container');
+    }
+    if(promoPan) promoPan.innerHTML = optionPromo;
+    if(recNombre) recNombre.innerHTML = optionReceta;
+}
+
+// --- PEDIDOS ---
+async function cargarPedidos() {
+    try {
+        let res = await fetch(`${API_PEDIDOS}/pedidos`);
+        pedidos = await res.json();
+        renderizarPedidosUI();
+    } catch (e) { console.error(e); }
+}
+async function agregarPedido(e) {
+    e.preventDefault();
+    const select = document.getElementById('ped-pan');
+    const seleccionados = Array.from(select.selectedOptions).filter(opt => opt.value !== "");
+    if(seleccionados.length === 0) return alert('Selecciona al menos un producto');
+    
+    let items = [];
+    let granTotal = 0;
+    
+    for(let opt of seleccionados) {
+        const precioU = parseFloat(opt.getAttribute('data-precio'));
+        const nombre = opt.getAttribute('data-nombre');
+        const cantiInput = document.getElementById(`cant-ped-pan-${opt.value}`);
+        const canti = cantiInput ? parseInt(cantiInput.value) : 1;
+        const subtotal = precioU * canti;
+        granTotal += subtotal;
+        items.push({ id_producto: parseInt(opt.value), nombre: nombre, cantidad: canti, precioU: precioU, subtotal: subtotal });
+    }
+    
+    const info = { items: items, total: granTotal };
+    
+    const data = { 
+        cliente: document.getElementById('ped-cliente').value, 
+        detalle: "JSON::" + JSON.stringify(info), 
+        fecha: document.getElementById('ped-fecha').value, 
+        estado: 'Pendiente' 
+    };
+    try {
+        const res = await fetch(`${API_PEDIDOS}/pedidos`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        if(res.ok) {
+            const pedidoGuardado = await res.json();
+            document.getElementById('form-pedidos').reset(); 
+            if(pedChoices) pedChoices.removeActiveItems();
+            document.getElementById('ped-cantidades-container').innerHTML = '';
+            await cargarPedidos();
+            imprimirTicketPedido(pedidoGuardado.id);
+        }
+    } catch(e) { console.error(e); }
+}
+async function entregarPedido(id) {
+    try {
+        await fetch(`${API_PEDIDOS}/pedidos/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({estado: 'Entregado'}) });
+        await cargarPedidos();
+    } catch(e) { console.error(e); }
+}
+async function eliminarPedido(id) {
+    if(!confirm("¿Borrar pedido?")) return;
+    try {
+        await fetch(`${API_PEDIDOS}/pedidos/${id}`, { method: 'DELETE' }); await cargarPedidos();
+    } catch(e) { console.error(e); }
+}
+function renderizarPedidosUI() {
+    let tbody = document.getElementById('tabla-pedidos'); if(!tbody) return; tbody.innerHTML = '';
+    pedidos.forEach(p => {
+        let textoDetalle = p.detalle;
+        let esEspecial = false;
+        let dataJson = null;
+        if(p.detalle.startsWith("JSON::")) {
+            esEspecial = true;
+            try {
+                dataJson = JSON.parse(p.detalle.replace("JSON::", ""));
+                if (dataJson.items) {
+                    let desc = dataJson.items.map(i => `${i.cantidad}x ${i.nombre}`).join(", ");
+                    textoDetalle = `${desc} (Total: $${parseFloat(dataJson.total).toFixed(2)})`;
+                } else {
+                    textoDetalle = `${dataJson.cantidad}x ${dataJson.nombre} (Total: $${parseFloat(dataJson.total).toFixed(2)})`;
+                }
+            } catch(e){}
+        }
+        
+        let printButton = esEspecial ? `<button class="btn btn-sm btn-secondary me-1" onclick="imprimirTicketPedido(${p.id})"><i class="bi bi-printer"></i></button>` : '';
+        
+        tbody.innerHTML += `<tr><td>${p.cliente}</td><td>${textoDetalle}</td><td>${p.fecha}</td><td><span class="badge ${p.estado==='Entregado'?'bg-success':'bg-info text-dark'}">${p.estado}</span></td><td>${printButton}<button class="btn btn-sm btn-success me-1" onclick="entregarPedido(${p.id})"><i class="bi bi-check-all"></i></button><button class="btn btn-sm btn-danger" onclick="eliminarPedido(${p.id})"><i class="bi bi-trash"></i></button></td></tr>`;
+    });
+}
+function imprimirTicketPedido(id) {
+    let pedido = pedidos.find(p => p.id === id);
+    if(!pedido || !pedido.detalle.startsWith("JSON::")) return;
+    let data;
+    try { data = JSON.parse(pedido.detalle.replace("JSON::", "")); } catch(e) { return; }
+    
+    let items = data.items || [data];
+    let rowsHtml = items.map(i => `
+        <tr>
+            <td style="text-align: left; padding: 2px 0;">${i.nombre} <small>x${i.cantidad}</small></td>
+            <td style="text-align: right; padding: 2px 0;">$${(i.subtotal || i.total || (i.precioU * i.cantidad)).toFixed(2)}</td>
+        </tr>
+    `).join('');
+    
+    let ticketHtml = `
+        <div style="font-family: monospace; width: 300px; margin: 0 auto; text-align: center; padding: 20px; font-size: 14px;">
+            <h2 style="margin: 0;">PANES HERMANOS</h2>
+            <p style="margin: 5px 0;">El mejor pan de la ciudad</p>
+            <p>===================================</p>
+            <h3 style="margin: 5px 0;">PEDIDO ESPECIAL</h3>
+            <p style="text-align: left; margin: 2px 0;">Pedido: #${pedido.id}</p>
+            <p style="text-align: left; margin: 2px 0;">Cliente: ${pedido.cliente}</p>
+            <p style="text-align: left; margin: 2px 0;">Agendado para: ${pedido.fecha}</p>
+            <p>===================================</p>
+            <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+                ${rowsHtml}
+            </table>
+            <p>===================================</p>
+            <h3 style="text-align: right; margin: 5px 0;">Total a pagar: $${data.total.toFixed(2)}</h3>
+            <p>===================================</p>
+            <p style="margin-top: 15px;">Estado: ${pedido.estado}</p>
+            <p>¡Gracias por su preferencia!</p>
+        </div>
+    `;
+    let win = window.open('', '_blank');
+    win.document.write(ticketHtml);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); win.close(); }, 500);
+}
+
+// --- INSUMOS ---
+async function cargarInsumos() {
+    try {
+        let res = await fetch(`${API_INSUMOS}/insumos`);
+        insumos = await res.json();
+        renderizarInsumosUI();
+        popularSelectsDeInsumos();
+    } catch (e) { console.error(e); }
+}
+async function agregarInsumo(e) {
+    e.preventDefault();
+    const data = { nombre: document.getElementById('ins-nombre').value, cantidad: document.getElementById('ins-cantidad').value, costo: parseFloat(document.getElementById('ins-costo').value) };
+    try {
+        await fetch(`${API_INSUMOS}/insumos`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        document.getElementById('form-insumos').reset(); await cargarInsumos();
+    } catch(e) { console.error(e); }
+}
+async function eliminarInsumo(id) {
+    if(!confirm("¿Borrar insumo?")) return;
+    try {
+        await fetch(`${API_INSUMOS}/insumos/${id}`, { method: 'DELETE' }); await cargarInsumos();
+    } catch(e) { console.error(e); }
+}
+async function editarInsumo(id) {
+    let ins = insumos.find(i => i.id === id);
+    if(!ins) return;
+    
+    let nuevaCantidad = prompt(`Refill / Editar Cantidad para ${ins.nombre}:\nEscribe la nueva cantidad total (ej: 10 Kg, 5 L, 30 pz)`, ins.cantidad);
+    if(nuevaCantidad === null || nuevaCantidad.trim() === '') return;
+    
+    let nuevoCosto = prompt(`Editar costo total para ${ins.nombre}:`, ins.costo);
+    if(nuevoCosto === null || nuevoCosto.trim() === '') return;
+    
+    let costoNum = parseFloat(nuevoCosto);
+    if(isNaN(costoNum)) return alert('Costo inválido');
+    
+    let parsed = parsearInsumoCantYUnidad(nuevaCantidad);
+    let cantFormateada = formatearInsumoParaDB(parsed.num, parsed.unit);
+    
+    try {
+        let insData = { nombre: ins.nombre, cantidad: cantFormateada, costo: costoNum };
+        await fetch(`${API_INSUMOS}/insumos/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(insData) });
+        await cargarInsumos();
+    } catch(e) { console.error(e); }
+}
+function renderizarInsumosUI() {
+    let tbody = document.getElementById('tabla-insumos'); if(!tbody) return; tbody.innerHTML = '';
+    insumos.forEach(ins => tbody.innerHTML += `<tr><td>${ins.nombre}</td><td>${ins.cantidad}</td><td>$${parseFloat(ins.costo).toFixed(2)}</td><td><button class="btn btn-sm btn-primary me-1" onclick="editarInsumo(${ins.id})" title="Editar / Refill"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-danger" onclick="eliminarInsumo(${ins.id})" title="Eliminar"><i class="bi bi-trash"></i></button></td></tr>`);
+}
+
+window.addEventListener('load', async () => {
     const usuarioActivo = localStorage.getItem('ph_usuario_activo');
     const rolActivo = localStorage.getItem('ph_rol_activo');
 
@@ -636,10 +1392,25 @@ window.addEventListener('load', () => {
     document.getElementById('header-user-fullname').textContent = usuarioActivo;
     document.getElementById('header-user-rol').textContent = rolActivo || 'Cajero';
 
-    if (rolActivo === 'Cajero') {
-        const adminLinks = document.querySelectorAll('.nav-item-admin');
-        adminLinks.forEach(el => el.style.display = 'none');
-        
+    const menus = {
+        'Administrador': ['menu-ventas', 'menu-inventario', 'menu-promociones', 'menu-empleados', 'menu-reportes', 'menu-recetas', 'menu-ordenes', 'menu-mermas', 'menu-pedidos', 'menu-insumos'],
+        'Cajero': ['menu-ventas', 'menu-inventario', 'menu-pedidos'],
+        'Panadero': ['menu-recetas', 'menu-ordenes', 'menu-mermas']
+    };
+
+    let menusPermitidos = menus[rolActivo] || menus['Cajero'];
+    
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(li => {
+        let match = li.className.match(/menu-[\w-]+/);
+        if (match) {
+            let claseMenu = match[0];
+            if (!menusPermitidos.includes(claseMenu)) {
+                li.style.display = 'none';
+            }
+        }
+    });
+
+    if (rolActivo !== 'Administrador') {
         const formAdmins = document.querySelectorAll('.form-admin-only');
         formAdmins.forEach(el => el.style.display = 'none');
         
@@ -649,7 +1420,29 @@ window.addEventListener('load', () => {
         }
     }
 
-    actualizarVistas();
+    if (rolActivo === 'Panadero') {
+        // Por defecto ocultamos la UI hasta ver qué plugins tiene
+        let modulos = document.querySelectorAll('.modulo');
+        modulos.forEach(modulo => modulo.style.display = 'none');
+    }
+
+    await actualizarVistas();
+
+    if (rolActivo === 'Panadero') {
+        let tieneRecetas = !document.querySelector('.menu-recetas').classList.contains('d-none');
+        let tieneOrdenes = !document.querySelector('.menu-ordenes').classList.contains('d-none');
+        let tieneMermas = !document.querySelector('.menu-mermas').classList.contains('d-none');
+        
+        if (tieneRecetas) {
+            cambiarModulo('modulo-recetas');
+        } else if (tieneOrdenes) {
+            cambiarModulo('modulo-ordenes');
+        } else if (tieneMermas) {
+            cambiarModulo('modulo-mermas');
+        } else {
+            cambiarModulo('modulo-sin-plugins');
+        }
+    }
 });
 
 function cerrarSesion() {

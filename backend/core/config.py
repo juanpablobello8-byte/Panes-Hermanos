@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     POS_PIN_TOKEN_EXPIRE_MINUTES: int = 15  # El token de cajero expira rápido para seguridad
     
     # Origenes permitidos estrictamente desde variables de entorno
-    CORS_ORIGINS: list[str] = ["http://192.168.1.50", "http://localhost:3000", "https://admin.mi-pos.com"]
+    CORS_ORIGINS: list[str] = ["http://192.168.1.50", "http://localhost:3000", "https://admin.mi-pos.com", "http://localhost:5500", "http://127.0.0.1:5500"]
     
     class Config:
         case_sensitive = True
