@@ -153,6 +153,13 @@ function verificarAdminParaPlugins() {
     if (rol === 'Administrador') {
         const menuGestor = document.getElementById('menu-gestor-plugins');
         if(menuGestor) menuGestor.classList.remove('d-none');
+        
+        if (!esLocal) {
+            const formPlugin = document.getElementById('form-plugin');
+            const pluginWarning = document.getElementById('plugin-vercel-warning');
+            if (formPlugin) formPlugin.style.display = 'none';
+            if (pluginWarning) pluginWarning.style.display = 'block';
+        }
     }
 }
 

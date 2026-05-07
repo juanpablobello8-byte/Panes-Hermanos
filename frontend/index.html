@@ -605,8 +605,13 @@
       <section class="section">
         <div class="row">
           <div class="col-md-6">
-            <div class="card"><div class="card-body">
+            <div class="card"><div class="card-body" id="panel-instalar-plugin">
               <h5 class="card-title">Instalar Plugin</h5>
+              <div id="plugin-vercel-warning" style="display: none;" class="alert alert-info">
+                <i class="bi bi-info-circle me-1"></i>
+                <strong>Entorno en la nube:</strong> El sistema está alojado en Vercel. 
+                Por seguridad, los plugins no pueden subirse por la web. Añádelos localmente y sube los cambios a GitHub.
+              </div>
               <form id="form-plugin" onsubmit="instalarPlugin(event)">
                 <div class="mb-3">
                   <label for="plugin-file" class="form-label">Archivo ZIP del Plugin</label>
