@@ -1,7 +1,11 @@
 /* =========================================
    CONFIGURACIÓN DE LA API UNIFICADA
    ========================================= */
-const API_BASE = 'http://localhost:8000/api'; 
+const esLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE = esLocal 
+    ? 'http://localhost:8000/api' 
+    : 'https://panaderia-backend.onrender.com/api'; // <--- Render URL
+
 const API_INVENTARIO = `${API_BASE}/inventario`;
 const API_VENTAS = `${API_BASE}/ventas`;
 const API_REPORTES = `${API_BASE}/reportes`;

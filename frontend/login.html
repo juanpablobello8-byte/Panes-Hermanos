@@ -97,7 +97,12 @@
 
             if (usuario && pass) {
                 try {
-                    const response = await fetch('http://localhost:8000/api/empleados/empleados/login', {
+                    const esLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                    const API_LOGIN = esLocal 
+                        ? 'http://localhost:8000/api/empleados/empleados/login' 
+                        : 'https://panaderia-backend.onrender.com/api/empleados/empleados/login';
+
+                    const response = await fetch(API_LOGIN, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'

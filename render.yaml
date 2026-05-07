@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: panaderia-backend
+    env: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn api_gateway:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: SUPABASE_URL
+        value: "https://ijvqubewduqzswxxamen.supabase.co"
+      - key: SUPABASE_KEY
+        value: "sb_publishable_QBO_3vQo-u9kldEBLDfkbw_ZMV0lyPQ"
