@@ -11,12 +11,15 @@ PLUGINS_CONFIG_FILE = os.path.join(os.path.dirname(__file__), "plugins.json")
 BACKEND_PLUGINS_DIR = os.path.join(os.path.dirname(__file__), "plugins_backend")
 FRONTEND_PLUGINS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "plugins")
 
-# Ensure directories exist
-os.makedirs(BACKEND_PLUGINS_DIR, exist_ok=True)
-os.makedirs(FRONTEND_PLUGINS_DIR, exist_ok=True)
-if not os.path.exists(PLUGINS_CONFIG_FILE):
-    with open(PLUGINS_CONFIG_FILE, "w") as f:
-        json.dump({"active_plugins": []}, f)
+# Ensure directories exist (Vercel has read-only filesystem)
+try:
+    os.makedirs(BACKEND_PLUGINS_DIR, exist_ok=True)
+    os.makedirs(FRONTEND_PLUGINS_DIR, exist_ok=True)
+    if not os.path.exists(PLUGINS_CONFIG_FILE):
+        with open(PLUGINS_CONFIG_FILE, "w") as f:
+            json.dump({"active_plugins": []}, f)
+except OSError:
+    pass # Ignorar en entornos de solo lectura como Vercel
 
 def get_config():
     with open(PLUGINS_CONFIG_FILE, "r") as f:
