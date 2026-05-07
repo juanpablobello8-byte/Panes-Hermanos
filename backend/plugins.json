@@ -1,24 +1,6 @@
 {
     "active_plugins": [
         {
-            "id": "promociones",
-            "name": "Promociones",
-            "api_route": "/api/promociones",
-            "menu_class": "menu-promociones"
-        },
-        {
-            "id": "mermas",
-            "name": "Mermas",
-            "api_route": "/api/mermas",
-            "menu_class": "menu-mermas"
-        },
-        {
-            "id": "insumos",
-            "name": "Carga de Insumos",
-            "api_route": "/api/insumos",
-            "menu_class": "menu-insumos"
-        },
-        {
             "id": "ordenes",
             "name": "\u00d3rdenes de Horneado",
             "api_route": "/api/ordenes",
@@ -29,6 +11,24 @@
             "name": "Recetas",
             "api_route": "/api/recetas",
             "menu_class": "menu-recetas"
+        },
+        {
+            "id": "promociones",
+            "name": "Promociones",
+            "api_route": "/api/promociones",
+            "menu_class": "menu-promociones"
+        },
+        {
+            "id": "insumos",
+            "name": "Carga de Insumos",
+            "api_route": "/api/insumos",
+            "menu_class": "menu-insumos"
+        },
+        {
+            "id": "mermas",
+            "name": "Mermas",
+            "api_route": "/api/mermas",
+            "menu_class": "menu-mermas"
         }
     ]
 }

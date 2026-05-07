@@ -32,16 +32,3 @@ def crear_merma(merma: MermaCreate):
         data['fecha_registro'] = datetime.datetime.now().strftime('%Y-%m-%d')
     response = supabase.table('mermas').insert(data).execute()
     return response.data[0]
-
-@app.delete("/mermas/{merma_id}", status_code=204)
-def eliminar_merma(merma_id: int):
-    supabase.table('mermas').delete().eq('id', merma_id).execute()
-    return None
-
-@app.put("/mermas/{merma_id}", response_model=Merma)
-def actualizar_merma(merma_id: int, merma: MermaCreate):
-    response = supabase.table('mermas').update(merma.model_dump()).eq('id', merma_id).execute()
-    data = response.data
-    if not data:
-        raise HTTPException(status_code=404, detail="Merma no encontrada")
-    return data[0]

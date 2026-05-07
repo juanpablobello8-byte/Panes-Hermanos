@@ -32,11 +32,3 @@ def crear_insumo(insumo: InsumoCreate):
 def eliminar_insumo(insumo_id: int):
     supabase.table('insumos').delete().eq('id', insumo_id).execute()
     return None
-
-@app.put("/insumos/{insumo_id}", response_model=Insumo)
-def actualizar_insumo(insumo_id: int, insumo: InsumoCreate):
-    response = supabase.table('insumos').update(insumo.model_dump()).eq('id', insumo_id).execute()
-    data = response.data
-    if not data:
-        raise HTTPException(status_code=404, detail="Insumo no encontrado")
-    return data[0]
