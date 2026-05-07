@@ -4,7 +4,7 @@
 const esLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const API_BASE = esLocal 
     ? 'http://localhost:8000/api' 
-    : 'https://panaderia-backend.onrender.com/api'; // <--- Render URL
+    : 'https://TU-PROYECTO.vercel.app/api'; // <--- URL de Vercel
 
 const API_INVENTARIO = `${API_BASE}/inventario`;
 const API_VENTAS = `${API_BASE}/ventas`;
