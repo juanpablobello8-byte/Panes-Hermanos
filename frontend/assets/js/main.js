@@ -461,7 +461,12 @@ async function eliminarEmpleado(id) {
     if(confirm('¿Seguro que deseas dar de baja a este empleado en Supabase?')) {
         try {
             const respuesta = await fetch(`${API_EMPLEADOS}/empleados/${id}`, { method: 'DELETE' });
-            if(respuesta.ok || respuesta.status === 204) await actualizarVistas();
+            if(respuesta.ok || respuesta.status === 204) {
+                await actualizarVistas();
+            } else {
+                const err = await respuesta.json();
+                alert(`Error: ${err.detail || 'No se pudo eliminar el empleado'}`);
+            }
         } catch (e) { console.error("Error eliminando empleado:", e); }
     }
 }

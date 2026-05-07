@@ -51,6 +51,17 @@ def crear_empleado(empleado: EmpleadoCreate):
 @app.delete("/empleados/{empleado_id}", status_code=204, tags=["Empleados"])
 def eliminar_empleado(empleado_id: int):
     """Elimina empleado de Supabase."""
+    response = supabase.table('empleados').select('*').eq('id', empleado_id).execute()
+    empleados = response.data
+    
+    if not empleados:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+        
+    empleado = empleados[0]
+    # Protegemos al administrador general
+    if empleado.get('usuario') == 'admin':
+        raise HTTPException(status_code=403, detail="El Administrador General no puede ser borrado por seguridad.")
+        
     supabase.table('empleados').delete().eq('id', empleado_id).execute()
     return None
 
